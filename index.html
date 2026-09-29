@@ -6,21 +6,52 @@
 <title>카드 게임</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
+<style>
+  body{ margin:0; }
+  .splash{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(255,201,102,0.12), transparent 50%),
+      linear-gradient(160deg, #0F4D3E, #0A3A2F 55%, #0A2E26);
+    color:#fff; text-align:center; padding:24px; overflow:hidden; position:relative;
+  }
+  .splash .floaters{ position:absolute; inset:0; pointer-events:none; }
+  .splash .floaters span{
+    position:absolute; font-size:34px; opacity:0.16;
+    animation:floatUp 9s linear infinite;
+  }
+  @keyframes floatUp{
+    from{ transform:translateY(110vh) rotate(0deg); }
+    to{ transform:translateY(-15vh) rotate(30deg); }
+  }
+  .splash h1{
+    font-size:38px; font-weight:800; margin:0 0 6px; letter-spacing:-0.02em;
+    text-shadow:0 4px 24px rgba(255,201,102,0.35);
+  }
+  .splash p{ color:#CFE3DB; font-size:15px; margin:0 0 32px; }
+  .splash .enter-btn{
+    font-family:inherit; font-weight:800; font-size:18px; padding:18px 46px;
+    border:none; border-radius:40px; cursor:pointer;
+    background:linear-gradient(155deg,#FFD98A,#E8A33D); color:#3A2B0E;
+    box-shadow:0 14px 34px rgba(232,163,61,0.45);
+    transition:transform 0.15s;
+  }
+  .splash .enter-btn:active{ transform:scale(0.96); }
+</style>
 </head>
 <body>
-  <div class="center-screen">
-    <div class="card-box" style="max-width:420px;">
-      <h2>🎴 카드 게임</h2>
-      <p>어느 화면으로 들어갈까요?</p>
-      <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-        <a href="student.html" style="text-decoration:none;">
-          <button class="btn btn-primary btn-big" style="width:100%;">학생으로 입장하기</button>
-        </a>
-        <a href="admin.html" style="text-decoration:none;">
-          <button class="btn btn-ghost btn-big" style="width:100%;">교사 관리자 페이지</button>
-        </a>
-      </div>
+  <div class="splash">
+    <div class="floaters">
+      <span style="left:8%; animation-delay:0s;">🎴</span>
+      <span style="left:25%; animation-delay:2s;">🃏</span>
+      <span style="left:50%; animation-delay:4s;">🛡️</span>
+      <span style="left:68%; animation-delay:1s;">⏭️</span>
+      <span style="left:85%; animation-delay:3s;">🔀</span>
     </div>
+    <h1>🎴 카드 게임</h1>
+    <p>선생님이 알려준 학급 코드로 입장하세요</p>
+    <button class="enter-btn" onclick="location.href='student.html'">입장하기</button>
   </div>
 </body>
 </html>

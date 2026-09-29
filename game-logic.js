@@ -26,6 +26,18 @@ const CARD_ICONS = {
 // 손패에 남는(보유형) 카드 종류. 순서대로 화면에 표시해요.
 const HAND_TYPES = ['pass', 'jump', 'turn', 'defense'];
 const SCORE_TYPES = ['general', 'steal'];
+const ALL_CARD_TYPES = ['general', 'steal', 'pass', 'jump', 'turn', 'defense'];
+
+// 카드 종류별 배경 그라데이션 (카드 시각 효과용)
+const CARD_COLORS = {
+  general: 'linear-gradient(155deg,#3B82F6,#1D4ED8)',
+  steal:   'linear-gradient(155deg,#F472B6,#BE185D)',
+  silence: 'linear-gradient(155deg,#94A3B8,#475569)',
+  pass:    'linear-gradient(155deg,#34D399,#047857)',
+  jump:    'linear-gradient(155deg,#FBBF24,#B45309)',
+  turn:    'linear-gradient(155deg,#A78BFA,#6D28D9)',
+  defense: 'linear-gradient(155deg,#38BDF8,#0369A1)'
+};
 
 // 관리자가 게임을 만들 때 기본으로 켜지는 특수카드 비율
 // (문제 수 대비 비율, 최소 1장은 항상 보장)

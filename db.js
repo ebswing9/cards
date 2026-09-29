@@ -281,12 +281,14 @@ function resolveDefenseWindow(gameId, g){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
         pushLog(group, '방어 카드로 강탈을 막았어요');
+        group.lastEffect = { effect: 'steal', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
       } else {
         const entries = Object.entries(targetHand).filter(([, n]) => n > 0);
         const totalN = entries.reduce((s, [, n]) => s + n, 0);
+        let chosen = null;
         if (totalN > 0){
           let r = Math.random() * totalN;
-          let chosen = entries[0][0];
+          chosen = entries[0][0];
           for (const [t, n] of entries){ if (r < n){ chosen = t; break; } r -= n; }
           targetHand[chosen] -= 1;
           group.hands[targetId] = targetHand;
@@ -295,6 +297,7 @@ function resolveDefenseWindow(gameId, g){
           group.hands[dw.actorId] = actorHand;
           pushLog(group, '카드 한 장을 강탈했어요');
         }
+        group.lastEffect = { effect: 'steal', success: true, cardType: chosen, actorId: dw.actorId, targetId, ts: Date.now() };
       }
       group = applyEndTurn(group);
 
@@ -307,9 +310,11 @@ function resolveDefenseWindow(gameId, g){
         group.hands[targetId] = targetHand;
         group.pendingSkip = false;
         pushLog(group, '방어 카드로 점프를 막았어요');
+        group.lastEffect = { effect: 'jump', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
       } else {
         group.pendingSkip = true;
         pushLog(group, '다음 사람의 턴이 건너뛰어질 예정이에요');
+        group.lastEffect = { effect: 'jump', success: true, actorId: dw.actorId, targetId, ts: Date.now() };
       }
       group.defenseWindow = null;
       group.phase = 'pre_turn';
@@ -329,15 +334,53 @@ function resolveDefenseWindow(gameId, g){
         group.hands[winner].defense -= 1;
         group.pendingFlip = false;
         pushLog(group, '방어 카드로 전환을 막았어요');
+        group.lastEffect = { effect: 'turn', success: false, actorId: dw.actorId, targetId: winner, ts: Date.now() };
       } else {
         group.pendingFlip = true;
         pushLog(group, '진행 방향이 반대로 바뀔 예정이에요');
+        group.lastEffect = { effect: 'turn', success: true, actorId: dw.actorId, ts: Date.now() };
       }
       group.defenseWindow = null;
       group.phase = 'pre_turn';
     }
     return group;
   });
+}
+
+// ---------- 관리자: 모둠 수동 배치 ----------
+
+async function adminMovePlayer(gameId, playerId, fromGroup, toGroup, toSeat){
+  if (fromGroup && String(fromGroup) !== String(toGroup)){
+    await groupRef(gameId, fromGroup).transaction(group => {
+      if (!group) return group;
+      group.seats = group.seats || {};
+      Object.keys(group.seats).forEach(k => { if (group.seats[k] === playerId) delete group.seats[k]; });
+      return group;
+    });
+  }
+  await setPlayerGroup(gameId, playerId, toGroup);
+  await pickSeat(gameId, toGroup, toSeat, playerId);
+}
+
+// ---------- 학생 PIN ----------
+
+function getStudentPin(classId, studentId){
+  return db.ref(`rosters/${classId}/${studentId}/pin`).once('value').then(s => s.val());
+}
+function setStudentPin(classId, studentId, pin){
+  return db.ref(`rosters/${classId}/${studentId}/pin`).set(pin);
+}
+function resetStudentPin(classId, studentId){
+  return db.ref(`rosters/${classId}/${studentId}/pin`).remove();
+}
+
+// ---------- 관리자 PIN ----------
+
+function getAdminPin(){
+  return db.ref('settings/adminPin').once('value').then(s => s.val());
+}
+function setAdminPin(pin){
+  return db.ref('settings/adminPin').set(pin);
 }
 
 // 판정 제안 (5초 취소 대기) -> 이후 resolveJudge 가 실제로 반영

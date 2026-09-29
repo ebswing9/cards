@@ -213,3 +213,158 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .results-table td, .results-table th{text-align:center;}
 .results-table td:nth-child(2), .results-table th:nth-child(2){text-align:left;}
 .rank-1{font-weight:800; color:#8a5a10;}
+
+/* ======================================================
+   게임 화면 비주얼 강화
+   ====================================================== */
+
+.felt-bg{
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(160deg, #0F4D3E, #0A3A2F 55%, #0A2E26);
+  min-height:100vh;
+  color:#F3EFE6;
+}
+.felt-bg .game-top{
+  background:rgba(10,40,32,0.85);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  color:#fff;
+}
+.felt-bg .timer{color:#FFE9B3; text-shadow:0 0 14px rgba(255,201,102,0.5);}
+.felt-bg .hint, .felt-bg p{color:#CFE3DB;}
+.felt-bg .log-panel{background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); color:#EAF3EE;}
+.felt-bg .btn-ghost{background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.25);}
+.felt-bg .btn-ghost:hover{background:rgba(255,255,255,0.18);}
+
+.direction-arrow{
+  display:inline-block; padding:5px 14px; border-radius:20px;
+  background:rgba(255,255,255,0.12); color:#FFE9B3; font-weight:700; font-size:13px;
+}
+
+/* 플레이어 자리 - 카드더미 아이콘 */
+.felt-bg .seat-chip{
+  background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.18); color:#fff;
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+.felt-bg .seat-chip.me{background:rgba(255,201,102,0.16); border-color:#FFC966; box-shadow:0 0 0 3px rgba(255,201,102,0.18);}
+.seat-chip.active-turn{
+  animation:seatPulse 1.4s ease-in-out infinite;
+  border-color:#FFC966 !important;
+}
+@keyframes seatPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,201,102,0.55); }
+  50%{ box-shadow:0 0 0 8px rgba(255,201,102,0); }
+}
+.card-stack{
+  display:flex; justify-content:center; margin:4px 0 2px;
+  position:relative; height:28px;
+}
+.card-stack .cs{
+  width:18px; height:24px; border-radius:4px;
+  background:linear-gradient(155deg,#5B4636,#3A2B21);
+  border:1px solid rgba(255,255,255,0.35);
+  position:absolute; top:0;
+}
+.card-stack .cs:nth-child(1){ left:calc(50% - 24px); transform:rotate(-10deg); }
+.card-stack .cs:nth-child(2){ left:calc(50% - 9px); transform:rotate(0deg); z-index:1; }
+.card-stack .cs:nth-child(3){ left:calc(50% + 6px); transform:rotate(10deg); }
+.card-stack .num{
+  position:absolute; top:-6px; right:calc(50% - 34px);
+  background:#FFC966; color:#3A2B0E; font-size:11px; font-weight:800;
+  border-radius:10px; padding:1px 6px; box-shadow:0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* 중앙 카드 영역: 카드 뒤집기 연출 */
+.felt-bg .center-card{
+  background:#fff; color:var(--ink); border:none; border-radius:20px;
+  box-shadow:0 14px 30px rgba(0,0,0,0.35);
+  perspective:800px;
+}
+.center-card.flip-in{ animation:flipIn 0.5s ease; }
+@keyframes flipIn{
+  from{ transform:rotateY(90deg); opacity:0.3; }
+  to{ transform:rotateY(0deg); opacity:1; }
+}
+.center-card.type-general{ box-shadow:0 14px 30px rgba(59,130,246,0.45); border-top:6px solid #1D4ED8; }
+.center-card.type-steal{ box-shadow:0 14px 30px rgba(190,24,93,0.45); border-top:6px solid #BE185D; }
+.center-card .type-tag{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px;
+  font-weight:700; font-size:12.5px; color:#fff;
+}
+.center-card .qtext{font-size:19px;}
+
+.judge-row button{
+  font-size:15px; padding:14px 10px; border-radius:14px;
+  transition:transform 0.12s;
+}
+.judge-row button:active{ transform:scale(0.95); }
+.btn-correct{ box-shadow:0 6px 16px rgba(46,139,87,0.4); }
+.btn-incorrect{ box-shadow:0 6px 16px rgba(180,71,45,0.4); }
+
+.flash-correct{ animation:flashGreen 0.6s ease; }
+.flash-incorrect{ animation:flashRed 0.6s ease; }
+@keyframes flashGreen{ 0%{background:#2E8B57;} 100%{background:transparent;} }
+@keyframes flashRed{ 0%{background:#B4472D;} 100%{background:transparent;} }
+
+/* 손패 칩 - 점수 카드 / 특수 카드 구분 */
+.hand-section-title{
+  font-size:11.5px; color:#CFE3DB; text-align:center; margin:10px 0 6px; letter-spacing:0.04em;
+}
+.hand-chip{
+  background:#fff; border:none; border-radius:14px; padding:12px 14px; min-width:72px;
+  box-shadow:0 6px 14px rgba(0,0,0,0.25); color:var(--ink);
+  transition:transform 0.15s;
+}
+.hand-chip:hover{ transform:translateY(-3px); }
+.hand-chip.score{ background:linear-gradient(155deg,#fff,#FFF7E6); border:2px solid #FFC966; }
+.hand-chip .n{ font-size:19px; }
+
+/* 알림 토스트 (게임 진행 알림) */
+.game-notice{
+  position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-14px);
+  background:rgba(20,20,18,0.92); color:#fff; padding:12px 22px; border-radius:30px;
+  font-size:14px; font-weight:600; box-shadow:0 10px 26px rgba(0,0,0,0.35);
+  opacity:0; z-index:70; pointer-events:none; transition:opacity 0.25s, transform 0.25s;
+  white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+}
+.game-notice.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* 강탈 카드 뒷면 부채꼴 */
+.steal-fan{
+  display:flex; justify-content:center; align-items:flex-end; height:120px; margin:14px 0; position:relative;
+}
+.steal-fan .fan-card{
+  width:56px; height:80px; border-radius:8px; margin:0 -14px;
+  background:linear-gradient(155deg,#5B4636,#3A2B21);
+  border:2px solid rgba(255,255,255,0.5);
+  box-shadow:0 6px 14px rgba(0,0,0,0.3);
+  display:flex; align-items:center; justify-content:center; font-size:20px; color:rgba(255,255,255,0.5);
+  cursor:pointer; transition:transform 0.15s;
+}
+.steal-fan .fan-card:hover{ transform:translateY(-14px) scale(1.06); }
+.steal-fan .fan-card.picked{ transform:translateY(-20px) scale(1.1); border-color:#FFC966; }
+.steal-reveal-card{
+  width:80px; height:110px; margin:14px auto; border-radius:10px; color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:34px;
+  box-shadow:0 14px 26px rgba(0,0,0,0.4);
+  animation:revealPop 0.5s ease;
+}
+@keyframes revealPop{ from{ transform:scale(0.4) rotateY(180deg); opacity:0; } to{ transform:scale(1) rotateY(0); opacity:1; } }
+
+/* PIN 입력 화면 */
+.pin-dots{ display:flex; gap:12px; justify-content:center; margin:18px 0; }
+.pin-dots .dot{ width:16px; height:16px; border-radius:50%; border:2px solid var(--line); }
+.pin-dots .dot.filled{ background:var(--felt); border-color:var(--felt); }
+.pin-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:260px; margin:0 auto; }
+.pin-pad button{
+  padding:16px 0; font-size:20px; font-weight:700; border-radius:12px;
+  border:1px solid var(--line); background:var(--paper); cursor:pointer;
+}
+.pin-pad button:active{ background:var(--felt-tint); }
+
+/* 관리자 PIN 게이트 */
+.pin-gate-overlay{
+  position:fixed; inset:0; background:var(--paper); z-index:100;
+  display:flex; align-items:center; justify-content:center;
+}

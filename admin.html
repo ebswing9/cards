@@ -9,9 +9,20 @@
 </head>
 <body>
 
+<div class="pin-gate-overlay" id="pinGate">
+  <div class="card-box" style="max-width:360px;">
+    <h2 id="pinGateTitle">PIN 확인 중...</h2>
+    <p id="pinGateDesc"></p>
+    <input type="text" id="pinGateInput" inputmode="numeric" maxlength="6" placeholder="PIN" style="letter-spacing:0.2em; text-align:center; font-size:20px;">
+    <button class="btn btn-primary btn-big" style="width:100%; margin-top:12px;" onclick="submitPinGate()">확인</button>
+    <div id="pinGateError" class="hint" style="color:var(--brick); margin-top:8px;"></div>
+  </div>
+</div>
+
 <header>
   <h1>🎴 카드 게임 관리자</h1>
   <p>학급 · 문제 세트 · 게임 진행을 관리해요</p>
+  <button class="btn btn-ghost btn-small" style="margin-left:auto;" onclick="changeAdminPin()">PIN 변경</button>
 </header>
 
 <nav class="tabs">
@@ -142,6 +153,63 @@ function downloadTextFile(filename, text, withBom){
 function randomCode(){ return String(Math.floor(1000 + Math.random() * 9000)); }
 
 // ======================================================
+// 관리자 PIN 게이트
+// ======================================================
+
+let adminPinMode = 'check'; // 'create' | 'check'
+
+async function initPinGate(){
+  if (sessionStorage.getItem('admin_unlocked') === '1'){
+    document.getElementById('pinGate').style.display = 'none';
+    return;
+  }
+  const pin = await getAdminPin();
+  const gate = document.getElementById('pinGate');
+  if (!pin){
+    adminPinMode = 'create';
+    document.getElementById('pinGateTitle').textContent = '관리자 PIN 만들기';
+    document.getElementById('pinGateDesc').textContent = '처음 사용하시네요. 앞으로 쓸 PIN을 정해주세요 (4자리 이상)';
+  } else {
+    adminPinMode = 'check';
+    document.getElementById('pinGateTitle').textContent = '관리자 PIN 입력';
+    document.getElementById('pinGateDesc').textContent = '학생들이 들어올 수 없도록 잠겨 있어요';
+  }
+  gate.style.display = 'flex';
+  document.getElementById('pinGateInput').focus();
+}
+
+async function submitPinGate(){
+  const val = document.getElementById('pinGateInput').value.trim();
+  if (!val){ return; }
+  if (adminPinMode === 'create'){
+    if (val.length < 4){ document.getElementById('pinGateError').textContent = '4자리 이상으로 정해주세요'; return; }
+    await setAdminPin(val);
+    sessionStorage.setItem('admin_unlocked', '1');
+    document.getElementById('pinGate').style.display = 'none';
+  } else {
+    const pin = await getAdminPin();
+    if (val === pin){
+      sessionStorage.setItem('admin_unlocked', '1');
+      document.getElementById('pinGate').style.display = 'none';
+    } else {
+      document.getElementById('pinGateError').textContent = 'PIN이 맞지 않아요';
+    }
+  }
+}
+document.getElementById('pinGateInput').addEventListener('keydown', e => { if (e.key==='Enter') submitPinGate(); });
+initPinGate();
+
+async function changeAdminPin(){
+  const cur = await getAdminPin();
+  const oldVal = prompt('현재 PIN을 입력하세요');
+  if (oldVal !== cur){ showToast('현재 PIN이 맞지 않아요'); return; }
+  const newVal = prompt('새 PIN을 입력하세요 (4자리 이상)');
+  if (!newVal || newVal.length < 4){ showToast('4자리 이상으로 정해주세요'); return; }
+  await setAdminPin(newVal);
+  showToast('PIN을 변경했어요');
+}
+
+// ======================================================
 // 학급 관리
 // ======================================================
 
@@ -209,12 +277,16 @@ function renderClassDetail(){
     <div class="section">
       <div class="section-title">명단 (${students.length}명)</div>
       <table>
-        <thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:70px"></th></tr></thead>
+        <thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:90px">PIN</th><th style="width:150px"></th></tr></thead>
         <tbody>
           ${students.map(([sid, s]) => `
             <tr><td>${escapeHtml(s.number)}</td><td>${escapeHtml(s.name)}</td>
-            <td class="row-actions"><button class="btn btn-danger btn-small" onclick="deleteStudent('${sid}')">삭제</button></td></tr>
-          `).join('') || '<tr><td colspan="3" class="empty-msg">등록된 학생이 없어요.</td></tr>'}
+            <td>${s.pin ? escapeHtml(s.pin) : '<span class="hint">미설정</span>'}</td>
+            <td class="row-actions">
+              ${s.pin ? `<button class="btn btn-ghost btn-small" onclick="handleResetPin('${sid}')">PIN 초기화</button>` : ''}
+              <button class="btn btn-danger btn-small" onclick="deleteStudent('${sid}')">삭제</button>
+            </td></tr>
+          `).join('') || '<tr><td colspan="4" class="empty-msg">등록된 학생이 없어요.</td></tr>'}
         </tbody>
       </table>
       <div class="inline-form">
@@ -243,6 +315,11 @@ function addStudent(){
   db.ref('rosters/' + selectedClassId).push({ number, name }).then(() => {
     numEl.value=''; nameEl.value=''; showToast('학생을 추가했어요');
   });
+}
+
+function handleResetPin(studentId){
+  if (!confirm('이 학생의 PIN을 초기화할까요? 다음 로그인 때 새로 설정하게 돼요.')) return;
+  resetStudentPin(selectedClassId, studentId).then(() => showToast('PIN을 초기화했어요'));
 }
 
 function deleteStudent(studentId){
@@ -631,10 +708,45 @@ function renderLobbyDetail(g){
       }).join('')}
     </div>
     <div class="section">
+      <div class="section-title">모둠 수동 배치</div>
+      <div class="hint">학생이 잘못 들어갔거나 자리를 못 고를 때 여기서 직접 옮겨줄 수 있어요.</div>
+      <table style="margin-top:8px;">
+        <thead><tr><th>이름</th><th>현재 위치</th><th style="width:280px">이동</th></tr></thead>
+        <tbody>
+          ${Object.entries(players).map(([pid,p]) => {
+            const curGroup = p.groupIndex || '';
+            let curSeat = '';
+            if (curGroup && groups[curGroup]){
+              const found = Object.entries(groups[curGroup].seats||{}).find(([,v]) => v===pid);
+              if (found) curSeat = found[0];
+            }
+            const groupOptions = Object.keys(groups).sort((a,b)=>a-b).map(gi => `<option value="${gi}" ${String(gi)===String(curGroup)?'selected':''}>${gi}조</option>`).join('');
+            const seatOptions = Array.from({length:g.meta.maxPerGroup},(_,i)=>i+1).map(s => `<option value="${s}" ${String(s)===String(curSeat)?'selected':''}>${s}번</option>`).join('');
+            return `<tr>
+              <td>${escapeHtml(p.name)}</td>
+              <td class="hint">${curGroup ? curGroup+'조 '+(curSeat||'-')+'번' : '미배정'}</td>
+              <td>
+                <select id="moveGroup_${pid}" style="width:70px;">${groupOptions}</select>
+                <select id="moveSeat_${pid}" style="width:70px;">${seatOptions}</select>
+                <button class="btn btn-ghost btn-small" onclick="handleMovePlayer('${pid}','${curGroup}')">이동</button>
+              </td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="3" class="empty-msg">아직 입장한 학생이 없어요.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="section">
       <button class="btn btn-primary btn-big" onclick="handleStartGame('${selectedGameId}')">게임 시작</button>
       <div class="hint">준비가 안 된 학생이 있어도 지금 자리한 인원으로 시작할 수 있어요.</div>
     </div>
   `;
+}
+
+async function handleMovePlayer(pid, fromGroup){
+  const toGroup = document.getElementById(`moveGroup_${pid}`).value;
+  const toSeat = document.getElementById(`moveSeat_${pid}`).value;
+  await adminMovePlayer(selectedGameId, pid, fromGroup || null, toGroup, toSeat);
+  showToast('자리를 옮겼어요');
 }
 
 async function handleStartGame(gameId){
