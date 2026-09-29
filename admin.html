@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카드 게임 관리자</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1>🎴 카드 게임 관리자</h1>
+  <p>학급 · 문제 세트 · 게임 진행을 관리해요</p>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-view="classesView" onclick="switchTab('classesView', this)">학급 관리</button>
+  <button data-view="questionsView" onclick="switchTab('questionsView', this)">문제 세트</button>
+  <button data-view="gamesView" onclick="switchTab('gamesView', this)">게임 진행</button>
+</nav>
+
+<main>
+
+  <!-- ============ 학급 관리 ============ -->
+  <div class="view active" id="classesView">
+    <div class="split">
+      <div class="panel">
+        <h2>학급 목록</h2>
+        <div id="classList"><div class="empty-msg">불러오는 중...</div></div>
+        <div class="inline-form">
+          <input type="text" id="newClassName" placeholder="예: 2학년 3반">
+          <button class="btn btn-primary" onclick="addClass()">추가</button>
+        </div>
+      </div>
+      <div class="panel" id="classDetail">
+        <div class="empty-msg">왼쪽에서 학급을 선택하거나 새로 추가하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 문제 세트 ============ -->
+  <div class="view" id="questionsView">
+    <div class="split">
+      <div class="panel">
+        <h2>문제 세트 목록</h2>
+        <div id="setList"><div class="empty-msg">불러오는 중...</div></div>
+        <div class="inline-form">
+          <input type="text" id="newSetName" placeholder="예: 3단원 문법">
+          <button class="btn btn-primary" onclick="addQuestionSet()">추가</button>
+        </div>
+      </div>
+      <div class="panel" id="setDetail">
+        <div class="empty-msg">왼쪽에서 문제 세트를 선택하거나 새로 추가하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 게임 진행 ============ -->
+  <div class="view" id="gamesView">
+    <div class="split">
+      <div class="panel">
+        <h2>게임 목록</h2>
+        <div id="gameList"><div class="empty-msg">불러오는 중...</div></div>
+        <button class="btn btn-primary" style="margin-top:12px; width:100%;" onclick="openCreateForm()">+ 새 게임 만들기</button>
+      </div>
+      <div class="panel" id="gameDetail">
+        <div class="empty-msg">왼쪽에서 게임을 선택하거나 새로 만드세요.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="game-logic.js"></script>
+<script src="db.js"></script>
+<script>
+
+// ======================================================
+// 공통 유틸
+// ======================================================
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function switchTab(viewId, btn){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(viewId).classList.add('active');
+}
+
+function escapeHtml(str){
+  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+}
+
+async function readFileSmart(file){
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) {
+    try { return new TextDecoder('euc-kr').decode(buf); }
+    catch (e2) { return new TextDecoder('utf-8').decode(buf); }
+  }
+}
+
+function parseCSV(text){
+  const rows = []; let row = []; let field = ''; let inQuotes = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQuotes){
+      if (c === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; } }
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field=''; }
+      else if (c === '\r') {}
+      else if (c === '\n') { row.push(field); rows.push(row); row=[]; field=''; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0){ row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length===1 && r[0].trim()===''));
+}
+
+function downloadTextFile(filename, text, withBom){
+  const blob = new Blob([withBom ? '\uFEFF' + text : text], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function randomCode(){ return String(Math.floor(1000 + Math.random() * 9000)); }
+
+// ======================================================
+// 학급 관리
+// ======================================================
+
+let classes = {};
+let rosters = {};
+let selectedClassId = null;
+let pendingRosterRows = null;
+
+db.ref('classes').on('value', snap => {
+  classes = snap.val() || {};
+  renderClassList();
+  if (selectedClassId) renderClassDetail();
+  renderCreateFormClassOptions();
+});
+
+function renderClassList(){
+  const el = document.getElementById('classList');
+  const ids = Object.keys(classes);
+  if (ids.length === 0){ el.innerHTML = '<div class="empty-msg">등록된 학급이 없어요.</div>'; return; }
+  el.innerHTML = ids.map(id => {
+    const c = classes[id];
+    const sel = id === selectedClassId ? 'selected' : '';
+    return `<div class="list-item ${sel}" onclick="selectClass('${id}')">
+      <div><div class="name">${escapeHtml(c.name)}</div><div class="sub">코드 ${c.code}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function addClass(){
+  const input = document.getElementById('newClassName');
+  const name = input.value.trim();
+  if (!name){ showToast('학급 이름을 입력해주세요'); return; }
+  const existingCodes = Object.values(classes).map(c => c.code);
+  let code; do { code = randomCode(); } while (existingCodes.includes(code));
+  const ref = db.ref('classes').push();
+  ref.set({ name, code, createdAt: Date.now() }).then(() => {
+    input.value = ''; showToast('학급을 추가했어요'); selectedClassId = ref.key;
+  });
+}
+
+function selectClass(id){
+  selectedClassId = id; renderClassList(); listenRoster(id); renderClassDetail();
+}
+
+function listenRoster(classId){
+  db.ref('rosters/' + classId).off();
+  db.ref('rosters/' + classId).on('value', snap => {
+    rosters[classId] = snap.val() || {};
+    if (selectedClassId === classId) renderClassDetail();
+  });
+}
+
+function renderClassDetail(){
+  const c = classes[selectedClassId];
+  const el = document.getElementById('classDetail');
+  if (!c){ el.innerHTML = '<div class="empty-msg">왼쪽에서 학급을 선택하거나 새로 추가하세요.</div>'; return; }
+  const roster = rosters[selectedClassId] || {};
+  const students = Object.entries(roster).sort((a,b) => Number(a[1].number) - Number(b[1].number));
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(c.name)}</div><div class="hint">학생들이 이 코드로 입장해요</div></div>
+      <div class="code-card"><div><div class="label">입장 코드</div><div class="code">${c.code}</div></div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">명단 (${students.length}명)</div>
+      <table>
+        <thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:70px"></th></tr></thead>
+        <tbody>
+          ${students.map(([sid, s]) => `
+            <tr><td>${escapeHtml(s.number)}</td><td>${escapeHtml(s.name)}</td>
+            <td class="row-actions"><button class="btn btn-danger btn-small" onclick="deleteStudent('${sid}')">삭제</button></td></tr>
+          `).join('') || '<tr><td colspan="3" class="empty-msg">등록된 학생이 없어요.</td></tr>'}
+        </tbody>
+      </table>
+      <div class="inline-form">
+        <input type="number" id="newStudentNumber" placeholder="번호" style="max-width:90px;">
+        <input type="text" id="newStudentName" placeholder="이름">
+        <button class="btn btn-primary" onclick="addStudent()">추가</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">명단 CSV로 올리기</div>
+      <div class="upload-box">
+        <div class="hint">번호, 이름 두 열로 된 CSV 파일. 첫 줄이 제목이면 자동으로 건너뛰어요.</div>
+        <div style="margin-top:10px;"><input type="file" id="rosterFile" accept=".csv" onchange="handleRosterFile(this.files[0])"></div>
+        <div id="rosterPreviewArea"></div>
+      </div>
+    </div>
+    <div class="section"><button class="btn btn-danger" onclick="deleteClass('${selectedClassId}')">이 학급 삭제</button></div>
+  `;
+}
+
+function addStudent(){
+  const numEl = document.getElementById('newStudentNumber');
+  const nameEl = document.getElementById('newStudentName');
+  const number = numEl.value.trim(), name = nameEl.value.trim();
+  if (!number || !name){ showToast('번호와 이름을 모두 입력해주세요'); return; }
+  db.ref('rosters/' + selectedClassId).push({ number, name }).then(() => {
+    numEl.value=''; nameEl.value=''; showToast('학생을 추가했어요');
+  });
+}
+
+function deleteStudent(studentId){
+  if (!confirm('이 학생을 명단에서 삭제할까요?')) return;
+  db.ref('rosters/' + selectedClassId + '/' + studentId).remove();
+}
+
+function deleteClass(classId){
+  const name = classes[classId]?.name || '';
+  if (!confirm(`"${name}" 학급을 삭제할까요?\n명단도 함께 삭제되며 되돌릴 수 없어요.`)) return;
+  db.ref('classes/' + classId).remove();
+  db.ref('rosters/' + classId).remove();
+  selectedClassId = null;
+  document.getElementById('classDetail').innerHTML = '<div class="empty-msg">왼쪽에서 학급을 선택하거나 새로 추가하세요.</div>';
+}
+
+async function handleRosterFile(file){
+  if (!file) return;
+  const text = await readFileSmart(file);
+  let rows = parseCSV(text);
+  if (rows.length && isNaN(Number(rows[0][0]))) rows = rows.slice(1);
+  const parsed = rows.filter(r => r.length>=2 && r[0].trim()!=='' && r[1].trim()!=='').map(r => ({ number:r[0].trim(), name:r[1].trim() }));
+  pendingRosterRows = parsed;
+  const area = document.getElementById('rosterPreviewArea');
+  if (parsed.length === 0){ area.innerHTML = '<div class="hint" style="color:var(--brick);margin-top:10px;">읽을 수 있는 학생 정보가 없어요.</div>'; return; }
+  area.innerHTML = `
+    <div class="preview-box">${parsed.map(p => `<div>${escapeHtml(p.number)}번 ${escapeHtml(p.name)}</div>`).join('')}</div>
+    <div class="radio-row">
+      <label><input type="radio" name="rosterMode" value="add" checked> 기존 명단에 추가</label>
+      <label><input type="radio" name="rosterMode" value="overwrite"> 기존 명단 덮어쓰기</label>
+    </div>
+    <button class="btn btn-primary" onclick="confirmRosterUpload()">${parsed.length}명 반영하기</button>
+  `;
+}
+
+function confirmRosterUpload(){
+  if (!pendingRosterRows) return;
+  const mode = document.querySelector('input[name=rosterMode]:checked').value;
+  if (mode === 'overwrite' && !confirm('기존 명단을 지우고 새 명단으로 덮어쓸까요?')) return;
+  const updates = {};
+  pendingRosterRows.forEach(p => { const key = db.ref('rosters/' + selectedClassId).push().key; updates[key] = p; });
+  const ref = db.ref('rosters/' + selectedClassId);
+  const after = () => {
+    showToast('명단을 반영했어요'); pendingRosterRows = null;
+    document.getElementById('rosterFile').value = '';
+    document.getElementById('rosterPreviewArea').innerHTML = '';
+  };
+  (mode === 'overwrite' ? ref.set(updates) : ref.update(updates)).then(after);
+}
+
+// ======================================================
+// 문제 세트 관리
+// ======================================================
+
+let questionSets = {};
+let questionsBySet = {};
+let selectedSetId = null;
+let pendingQuestionRows = null;
+
+db.ref('questionSets').on('value', snap => {
+  const all = snap.val() || {};
+  questionSets = {}; questionsBySet = {};
+  Object.entries(all).forEach(([id, v]) => { questionSets[id] = { name: v.name }; questionsBySet[id] = v.questions || {}; });
+  renderSetList();
+  if (selectedSetId) renderSetDetail();
+  renderCreateFormSetOptions();
+});
+
+function renderSetList(){
+  const el = document.getElementById('setList');
+  const ids = Object.keys(questionSets);
+  if (ids.length === 0){ el.innerHTML = '<div class="empty-msg">등록된 문제 세트가 없어요.</div>'; return; }
+  el.innerHTML = ids.map(id => {
+    const s = questionSets[id]; const count = Object.keys(questionsBySet[id]||{}).length;
+    const sel = id === selectedSetId ? 'selected' : '';
+    return `<div class="list-item ${sel}" onclick="selectSet('${id}')">
+      <div><div class="name">${escapeHtml(s.name)}</div><div class="sub">문제 ${count}개</div></div>
+    </div>`;
+  }).join('');
+}
+
+function addQuestionSet(){
+  const input = document.getElementById('newSetName');
+  const name = input.value.trim();
+  if (!name){ showToast('세트 이름을 입력해주세요'); return; }
+  const ref = db.ref('questionSets').push();
+  ref.set({ name, createdAt: Date.now() }).then(() => { input.value=''; showToast('문제 세트를 추가했어요'); selectedSetId = ref.key; });
+}
+
+function selectSet(id){ selectedSetId = id; renderSetList(); renderSetDetail(); }
+
+function renderSetDetail(){
+  const s = questionSets[selectedSetId];
+  const el = document.getElementById('setDetail');
+  if (!s){ el.innerHTML = '<div class="empty-msg">왼쪽에서 문제 세트를 선택하거나 새로 추가하세요.</div>'; return; }
+  const qs = questionsBySet[selectedSetId] || {};
+  const list = Object.entries(qs).sort((a,b) => (a[1].order||0)-(b[1].order||0));
+
+  el.innerHTML = `
+    <div class="detail-header"><div class="detail-title">${escapeHtml(s.name)}</div></div>
+    <div class="section">
+      <div class="section-title">문제 목록 (${list.length}개)</div>
+      <table>
+        <thead><tr><th style="width:40px">#</th><th>문제</th><th style="width:70px"></th></tr></thead>
+        <tbody>
+          ${list.map(([qid,q],i) => `
+            <tr><td>${i+1}</td>
+            <td><textarea rows="1" style="width:100%;" onblur="updateQuestionText('${qid}', this.value)">${escapeHtml(q.text)}</textarea></td>
+            <td class="row-actions"><button class="btn btn-danger btn-small" onclick="deleteQuestion('${qid}')">삭제</button></td></tr>
+          `).join('') || '<tr><td colspan="3" class="empty-msg">등록된 문제가 없어요.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="section">
+      <div class="section-title">여러 줄 한 번에 추가</div>
+      <textarea class="bulk" id="bulkQuestions" placeholder="한 줄에 문제 하나씩 붙여넣으세요."></textarea>
+      <div style="margin-top:8px;"><button class="btn btn-primary" onclick="addBulkQuestions()">추가</button></div>
+    </div>
+    <div class="section">
+      <div class="section-title">CSV로 올리기</div>
+      <div class="upload-box">
+        <div class="hint">문제 열 하나만 있으면 돼요. 다른 열이 있어도 무시해요.</div>
+        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <input type="file" id="questionFile" accept=".csv" onchange="handleQuestionFile(this.files[0])">
+          <button class="btn btn-ghost btn-small" onclick="downloadQuestionTemplate()">양식 다운로드</button>
+        </div>
+        <div id="questionPreviewArea"></div>
+      </div>
+    </div>
+    <div class="section"><button class="btn btn-danger" onclick="deleteSet('${selectedSetId}')">이 세트 삭제</button></div>
+  `;
+}
+
+function nextOrder(setId){
+  const qs = questionsBySet[setId] || {};
+  const orders = Object.values(qs).map(q => q.order||0);
+  return orders.length ? Math.max(...orders)+1 : 0;
+}
+
+function updateQuestionText(qid, text){
+  text = text.trim(); if (!text) return;
+  db.ref(`questionSets/${selectedSetId}/questions/${qid}/text`).set(text);
+}
+
+function deleteQuestion(qid){
+  if (!confirm('이 문제를 삭제할까요?')) return;
+  db.ref(`questionSets/${selectedSetId}/questions/${qid}`).remove();
+}
+
+function deleteSet(setId){
+  const name = questionSets[setId]?.name || '';
+  if (!confirm(`"${name}" 세트를 삭제할까요?\n안에 있는 문제도 함께 삭제되며 되돌릴 수 없어요.`)) return;
+  db.ref('questionSets/' + setId).remove();
+  selectedSetId = null;
+  document.getElementById('setDetail').innerHTML = '<div class="empty-msg">왼쪽에서 문제 세트를 선택하거나 새로 추가하세요.</div>';
+}
+
+function addBulkQuestions(){
+  const el = document.getElementById('bulkQuestions');
+  const lines = el.value.split('\n').map(l => l.trim()).filter(l => l!=='');
+  if (lines.length === 0){ showToast('추가할 문제를 입력해주세요'); return; }
+  let order = nextOrder(selectedSetId);
+  const updates = {};
+  lines.forEach(text => { const key = db.ref(`questionSets/${selectedSetId}/questions`).push().key; updates[key] = { text, order: order++ }; });
+  db.ref(`questionSets/${selectedSetId}/questions`).update(updates).then(() => { el.value=''; showToast(`${lines.length}개 문제를 추가했어요`); });
+}
+
+async function handleQuestionFile(file){
+  if (!file) return;
+  const text = await readFileSmart(file);
+  const rows = parseCSV(text);
+  if (rows.length === 0){ document.getElementById('questionPreviewArea').innerHTML = '<div class="hint" style="color:var(--brick);margin-top:10px;">파일을 읽을 수 없어요.</div>'; return; }
+  let colIndex = rows[0].length - 1; let startRow = 0;
+  const headerIdx = rows[0].findIndex(h => h.trim() === '문제');
+  if (headerIdx !== -1){ colIndex = headerIdx; startRow = 1; }
+  const parsed = rows.slice(startRow).map(r => (r[colIndex]||'').trim()).filter(t => t!=='');
+  pendingQuestionRows = parsed;
+  const area = document.getElementById('questionPreviewArea');
+  if (parsed.length === 0){ area.innerHTML = '<div class="hint" style="color:var(--brick);margin-top:10px;">읽을 수 있는 문제가 없어요.</div>'; return; }
+  area.innerHTML = `
+    <div class="preview-box">${parsed.map(t => `<div>${escapeHtml(t)}</div>`).join('')}</div>
+    <div class="radio-row">
+      <label><input type="radio" name="questionMode" value="add" checked> 기존 문제에 이어 붙이기</label>
+      <label><input type="radio" name="questionMode" value="overwrite"> 기존 문제 지우고 새로 채우기</label>
+    </div>
+    <button class="btn btn-primary" onclick="confirmQuestionUpload()">${parsed.length}개 반영하기</button>
+  `;
+}
+
+function confirmQuestionUpload(){
+  if (!pendingQuestionRows) return;
+  const mode = document.querySelector('input[name=questionMode]:checked').value;
+  const finish = () => {
+    showToast('문제를 반영했어요'); pendingQuestionRows = null;
+    document.getElementById('questionFile').value = '';
+    document.getElementById('questionPreviewArea').innerHTML = '';
+  };
+  const write = (startOrder) => {
+    const updates = {}; let order = startOrder;
+    pendingQuestionRows.forEach(text => { const key = db.ref(`questionSets/${selectedSetId}/questions`).push().key; updates[key] = { text, order: order++ }; });
+    return db.ref(`questionSets/${selectedSetId}/questions`).update(updates);
+  };
+  if (mode === 'overwrite'){
+    if (!confirm('기존 문제를 모두 지우고 새 문제로 채울까요?')) return;
+    db.ref(`questionSets/${selectedSetId}/questions`).remove().then(() => write(0)).then(finish);
+  } else {
+    write(nextOrder(selectedSetId)).then(finish);
+  }
+}
+
+function downloadQuestionTemplate(){ downloadTextFile('문제_양식.csv', '문제\n예시 문제를 여기에 입력하세요\n', true); }
+
+// ======================================================
+// 게임 진행
+// ======================================================
+
+let games = {};
+let selectedGameId = null;
+let creatingGame = false;
+let expandedGroup = null;
+
+db.ref('games').on('value', snap => {
+  games = snap.val() || {};
+  renderGameList();
+  if (selectedGameId) renderGameDetail();
+});
+
+function statusLabel(status){
+  return { lobby:'대기중', playing:'진행중', paused:'일시정지', ended:'종료' }[status] || status;
+}
+
+function renderGameList(){
+  const el = document.getElementById('gameList');
+  const ids = Object.keys(games).sort((a,b) => (games[b].meta?.createdAt||0) - (games[a].meta?.createdAt||0));
+  if (ids.length === 0){ el.innerHTML = '<div class="empty-msg">만들어진 게임이 없어요.</div>'; return; }
+  el.innerHTML = ids.map(id => {
+    const g = games[id].meta || {};
+    const sel = id === selectedGameId ? 'selected' : '';
+    return `<div class="list-item ${sel}" onclick="selectGame('${id}')">
+      <div><div class="name">${escapeHtml(g.className||'')}</div><div class="sub">${escapeHtml(g.questionSetName||'')} · ${statusLabel(g.status)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function selectGame(id){ creatingGame = false; selectedGameId = id; renderGameList(); renderGameDetail(); }
+
+function openCreateForm(){
+  creatingGame = true; selectedGameId = null;
+  renderGameList();
+  renderCreateForm();
+}
+
+function renderCreateFormClassOptions(){
+  const sel = document.getElementById('createClassSelect');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = Object.entries(classes).map(([id,c]) => `<option value="${id}">${escapeHtml(c.name)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+function renderCreateFormSetOptions(){
+  const sel = document.getElementById('createSetSelect');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = Object.entries(questionSets).map(([id,s]) => {
+    const count = Object.keys(questionsBySet[id]||{}).length;
+    return `<option value="${id}">${escapeHtml(s.name)} (문제 ${count}개)</option>`;
+  }).join('');
+  if (cur) sel.value = cur;
+}
+
+const CARD_CONFIG_ORDER = ['steal','pass','silence','jump','turn','defense'];
+
+function renderCreateForm(){
+  const el = document.getElementById('gameDetail');
+  el.innerHTML = `
+    <div class="detail-header"><div class="detail-title">새 게임 만들기</div></div>
+    <div class="section">
+      <div class="section-title">기본 설정</div>
+      <table>
+        <tr><td style="width:140px">학급</td><td><select id="createClassSelect" style="width:100%;"></select></td></tr>
+        <tr><td>문제 세트</td><td><select id="createSetSelect" style="width:100%;"></select></td></tr>
+        <tr><td>게임 시간(분)</td><td><input type="number" id="createDuration" value="15" style="width:100px;"></td></tr>
+        <tr><td>모둠 수</td><td><input type="number" id="createGroupCount" value="4" style="width:100px;"></td></tr>
+        <tr><td>모둠별 최대 인원</td><td><input type="number" id="createMaxPerGroup" value="4" style="width:100px;"></td></tr>
+      </table>
+    </div>
+    <div class="section">
+      <div class="section-title">덱 구성 방식</div>
+      <div class="radio-row">
+        <label><input type="radio" name="deckMode" value="random" checked> 모둠별 무작위</label>
+        <label><input type="radio" name="deckMode" value="common"> 전 모둠 공통</label>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">카드 종류 (일반 카드는 항상 포함돼요)</div>
+      <table>
+        <thead><tr><th style="width:40px"></th><th>카드</th><th style="width:140px">문제 수 대비 비율(%)</th></tr></thead>
+        <tbody>
+          ${CARD_CONFIG_ORDER.map(type => {
+            const d = DEFAULT_CARD_CONFIG[type];
+            return `<tr>
+              <td><input type="checkbox" id="cfg_${type}_on" checked></td>
+              <td>${CARD_ICONS[type]} ${CARD_LABELS[type]}</td>
+              <td><input type="number" id="cfg_${type}_ratio" value="${Math.round(d.ratio*100)}" style="width:70px;"> %</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="hint">덱 상한은 게임 시간(분) × 3장으로 자동 계산돼요.</div>
+    </div>
+    <div class="section">
+      <button class="btn btn-primary btn-big" onclick="submitCreateGame()">게임 만들기</button>
+    </div>
+  `;
+  renderCreateFormClassOptions();
+  renderCreateFormSetOptions();
+}
+
+async function submitCreateGame(){
+  const classId = document.getElementById('createClassSelect').value;
+  const setId = document.getElementById('createSetSelect').value;
+  if (!classId){ showToast('학급을 먼저 등록해주세요'); return; }
+  if (!setId){ showToast('문제 세트를 먼저 등록해주세요'); return; }
+  const qCount = Object.keys(questionsBySet[setId]||{}).length;
+  if (qCount === 0){ showToast('선택한 세트에 문제가 없어요'); return; }
+
+  const durationMinutes = Number(document.getElementById('createDuration').value) || 15;
+  const groupCount = Number(document.getElementById('createGroupCount').value) || 1;
+  const maxPerGroup = Number(document.getElementById('createMaxPerGroup').value) || 4;
+  const deckMode = document.querySelector('input[name=deckMode]:checked').value;
+
+  const cardConfig = {};
+  CARD_CONFIG_ORDER.forEach(type => {
+    cardConfig[type] = {
+      enabled: document.getElementById(`cfg_${type}_on`).checked,
+      ratio: Math.max(0, Number(document.getElementById(`cfg_${type}_ratio`).value) || 0) / 100
+    };
+  });
+
+  const gameId = await createGame({
+    classId, className: classes[classId].name,
+    questionSetId: setId, questionSetName: questionSets[setId].name,
+    durationMinutes, groupCount, maxPerGroup, deckMode, cardConfig
+  });
+  showToast('게임을 만들었어요');
+  creatingGame = false;
+  selectedGameId = gameId;
+}
+
+function renderGameDetail(){
+  if (creatingGame) return;
+  const g = games[selectedGameId];
+  const el = document.getElementById('gameDetail');
+  if (!g){ el.innerHTML = '<div class="empty-msg">왼쪽에서 게임을 선택하거나 새로 만드세요.</div>'; return; }
+  const status = g.meta.status;
+  if (status === 'lobby') renderLobbyDetail(g);
+  else if (status === 'ended') renderResultsDetail(g);
+  else renderMonitorDetail(g);
+}
+
+function renderLobbyDetail(g){
+  const el = document.getElementById('gameDetail');
+  const cls = classes[g.meta.classId];
+  const players = g.players || {};
+  const groups = g.groups || {};
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · ${g.meta.durationMinutes}분 · 대기중</div></div>
+      <div class="code-card"><div><div class="label">입장 코드</div><div class="code">${cls?.code||'-'}</div></div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">모둠별 자리 현황</div>
+      ${Object.keys(groups).sort((a,b)=>a-b).map(g2 => {
+        const seats = groups[g2].seats || {};
+        const seatCount = Object.keys(seats).length;
+        return `<div class="panel" style="margin-bottom:10px;">
+          <div style="font-weight:700; margin-bottom:8px;">${g2}조 (${seatCount}/${g.meta.maxPerGroup}명)</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${Object.entries(seats).sort((a,b)=>a[0]-b[0]).map(([seat,pid]) => {
+              const p = players[pid];
+              return `<span class="chip">${seat}번 ${p ? escapeHtml(p.name) : '?'}</span>`;
+            }).join('') || '<span class="hint">아직 아무도 없어요</span>'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="section">
+      <button class="btn btn-primary btn-big" onclick="handleStartGame('${selectedGameId}')">게임 시작</button>
+      <div class="hint">준비가 안 된 학생이 있어도 지금 자리한 인원으로 시작할 수 있어요.</div>
+    </div>
+  `;
+}
+
+async function handleStartGame(gameId){
+  const g = games[gameId];
+  const setId = g.meta.questionSetId;
+  const qs = questionsBySet[setId] || {};
+  const allQuestions = Object.entries(qs).map(([id,q]) => ({ id, text: q.text }));
+  if (allQuestions.length === 0){ showToast('문제가 없어서 시작할 수 없어요'); return; }
+  await startGame(gameId, allQuestions);
+  showToast('게임을 시작했어요');
+}
+
+const PHASE_LABELS = {
+  lobby:'대기중', pre_turn:'턴 대기', awaiting_answer:'답변·판정 중', judge_pending:'판정 반영 대기',
+  steal_pick:'강탈 대상 선택 중', awaiting_defense:'방어 대기 중', ended:'모둠 종료'
+};
+
+function renderMonitorDetail(g){
+  const el = document.getElementById('gameDetail');
+  const status = g.meta.status;
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · ${statusLabel(status)}</div></div>
+      <div style="display:flex; gap:8px;">
+        ${status === 'playing' ? `<button class="btn btn-amber" onclick="pauseGame('${selectedGameId}')">일시정지</button>` : ''}
+        ${status === 'paused' ? `<button class="btn btn-primary" onclick="resumeGame('${selectedGameId}')">재개</button>` : ''}
+        <button class="btn btn-danger" onclick="handleEndGame('${selectedGameId}')">게임 종료</button>
+      </div>
+    </div>
+    <div id="timerLine" class="hint" style="font-size:14px; margin-bottom:14px;"></div>
+    <div id="groupCards"></div>
+  `;
+  renderTimerLine(g);
+  renderGroupCards(g);
+}
+
+function renderTimerLine(g){
+  const line = document.getElementById('timerLine');
+  if (!line) return;
+  const status = g.meta.status;
+  if (status === 'paused'){
+    line.textContent = `일시정지됨 · 남은 시간 ${formatClock(g.meta.remainingMsAtPause)}`;
+    return;
+  }
+  const endAt = g.meta.endAt;
+  const remaining = endAt ? endAt - serverNow() : null;
+  line.textContent = remaining != null ? `남은 시간 ${formatClock(remaining)}` : '시간 계산 중...';
+}
+
+function renderGroupCards(g){
+  const wrap = document.getElementById('groupCards');
+  const players = g.players || {};
+  const groups = g.groups || {};
+  wrap.innerHTML = Object.keys(groups).sort((a,b)=>a-b).map(gi => {
+    const grp = groups[gi];
+    const order = computeOrder(grp.seats||{}, grp.excludedIds||{});
+    const curName = players[grp.currentPlayerId]?.name || '-';
+    const judgeName = players[grp.judgeId]?.name || '-';
+    const deckLeft = (grp.deck||[]).length;
+    const stuck = grp.turnStartedAt && (Date.now() - grp.turnStartedAt > 3*60*1000) && grp.phase !== 'ended';
+    const expanded = expandedGroup === gi;
+    return `
+      <div class="panel" style="margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleGroupExpand('${gi}')">
+          <div>
+            <strong>${gi}조</strong>
+            <span class="badge" style="margin-left:8px;">${PHASE_LABELS[grp.phase]||grp.phase}</span>
+            ${stuck ? '<span class="badge" style="background:#FBEAE5;color:#B4472D; margin-left:6px;">진행 지연 의심</span>' : ''}
+          </div>
+          <div class="hint">플레이어 ${curName} · 판정자 ${judgeName} · 덱 ${deckLeft}장</div>
+        </div>
+        ${expanded ? renderGroupExpanded(gi, grp, players, order) : ''}
+      </div>
+    `;
+  }).join('') || '<div class="empty-msg">모둠이 없어요.</div>';
+}
+
+function toggleGroupExpand(gi){
+  expandedGroup = expandedGroup === gi ? null : gi;
+  renderGameDetail();
+}
+
+function renderGroupExpanded(gi, grp, players, order){
+  const hands = grp.hands || {};
+  return `
+    <div class="section" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>이름</th><th>점수(일반+강탈)</th><th>손패 총</th><th style="width:100px"></th></tr></thead>
+        <tbody>
+          ${order.map(pid => {
+            const h = hands[pid] || emptyHand();
+            return `<tr>
+              <td>${escapeHtml(players[pid]?.name||'?')}</td>
+              <td>${handScore(h)}</td>
+              <td>${handTotal(h)}</td>
+              <td><button class="btn btn-ghost btn-small" onclick="openAdjustPanel('${gi}','${pid}')">카드 조정</button></td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="4" class="empty-msg">참가자가 없어요</td></tr>'}
+        </tbody>
+      </table>
+      <div id="adjustPanel_${gi}"></div>
+    </div>
+    <div class="section" style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-small" onclick="forceNextTurn('${selectedGameId}','${gi}')">강제 다음 턴</button>
+      <button class="btn btn-danger btn-small" onclick="handleRestartGroup('${selectedGameId}','${gi}')">모둠 재시작</button>
+    </div>
+    <div class="section">
+      <div class="section-title" style="font-size:12.5px;">참가자 제외/복귀</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${Object.entries(grp.seats||{}).map(([seat,pid]) => {
+          const excluded = grp.excludedIds && grp.excludedIds[pid];
+          return `<button class="btn btn-small ${excluded?'btn-danger':'btn-ghost'}" onclick="excludePlayer('${selectedGameId}','${gi}','${pid}',${!excluded})">
+            ${escapeHtml(players[pid]?.name||'?')} ${excluded?'(제외됨 · 복귀)':'(제외)'}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openAdjustPanel(gi, pid){
+  const el = document.getElementById(`adjustPanel_${gi}`);
+  if (!el) return;
+  const types = ['general','steal','pass','jump','turn','defense'];
+  el.innerHTML = `
+    <div class="confirm-banner">
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${types.map(t => `
+          <span class="chip">${CARD_ICONS[t]} ${CARD_LABELS[t]}
+            <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',-1)">-</button>
+            <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',1)">+</button>
+          </span>
+        `).join('')}
+      </div>
+      <button class="btn btn-ghost btn-small" onclick="document.getElementById('adjustPanel_${gi}').innerHTML=''">닫기</button>
+    </div>
+  `;
+}
+
+async function handleEndGame(gameId){
+  if (!confirm('게임을 종료할까요?')) return;
+  await endGame(gameId);
+}
+
+async function handleRestartGroup(gameId, gi){
+  if (!confirm(`${gi}조를 처음부터 다시 시작할까요? 손패와 진행 상황이 모두 초기화돼요.`)) return;
+  const g = games[gameId];
+  const setId = g.meta.questionSetId;
+  const allQuestions = Object.entries(questionsBySet[setId]||{}).map(([id,q]) => ({ id, text: q.text }));
+  const deckCap = g.meta.deckCap || Math.max(15, g.meta.durationMinutes*3);
+  await restartGroup(gameId, gi, allQuestions, g.meta.cardConfig, g.meta.deckMode, deckCap);
+  showToast('모둠을 다시 시작했어요');
+}
+
+function renderResultsDetail(g){
+  const el = document.getElementById('gameDetail');
+  const players = g.players || {};
+  const groups = g.groups || {};
+
+  const groupBlocks = Object.keys(groups).sort((a,b)=>a-b).map(gi => {
+    const hands = groups[gi].hands || {};
+    const rows = Object.entries(hands).map(([pid,h]) => ({
+      pid, name: players[pid]?.name || '?', score: handScore(h)
+    })).sort((a,b) => b.score - a.score);
+
+    let rank = 0, prevScore = null, shown = [];
+    rows.forEach((r,i) => {
+      if (r.score !== prevScore){ rank = i+1; prevScore = r.score; }
+      shown.push({...r, rank});
+    });
+
+    return `<div class="panel" style="margin-bottom:10px;">
+      <div style="font-weight:700; margin-bottom:8px;">${gi}조</div>
+      <table class="results-table">
+        <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
+        <tbody>
+          ${shown.map(r => `<tr class="${r.rank===1?'rank-1':''}"><td>${r.rank}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td></tr>`).join('') || '<tr><td colspan="3" class="empty-msg">참가자가 없어요</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · 종료됨</div></div>
+      <button class="btn btn-ghost" onclick="downloadResultsCSV('${selectedGameId}')">결과 CSV 내려받기</button>
+    </div>
+    ${groupBlocks || '<div class="empty-msg">모둠이 없어요.</div>'}
+  `;
+}
+
+function downloadResultsCSV(gameId){
+  const g = games[gameId];
+  const players = g.players || {};
+  const groups = g.groups || {};
+  const rows = [['학급','모둠','번호','이름','점수','순위']];
+  Object.keys(groups).sort((a,b)=>a-b).forEach(gi => {
+    const hands = groups[gi].hands || {};
+    const list = Object.entries(hands).map(([pid,h]) => ({
+      pid, name: players[pid]?.name||'', number: players[pid]?.number||'', score: handScore(h)
+    })).sort((a,b) => b.score-a.score);
+    let rank=0, prevScore=null;
+    list.forEach((r,i) => {
+      if (r.score !== prevScore){ rank=i+1; prevScore=r.score; }
+      rows.push([g.meta.className, gi, r.number, r.name, r.score, rank]);
+    });
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+  downloadTextFile(`${g.meta.className}_결과.csv`, csv, true);
+}
+
+// 1초마다 타이머 라인을 갱신
+setInterval(() => {
+  if (selectedGameId && games[selectedGameId] && !creatingGame){
+    const status = games[selectedGameId].meta.status;
+    if (status === 'playing' || status === 'paused') renderTimerLine(games[selectedGameId]);
+  }
+}, 1000);
+
+</script>
+</body>
+</html>
