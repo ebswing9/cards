@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>국어누리</title>
+<title>국어누리게임</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
 <style>
@@ -50,7 +50,7 @@ function renderCodeScreen(){
   app.innerHTML = `
     <div class="center-screen">
       <div class="card-box">
-        <h2>📖 국어누리</h2>
+        <h2>📖 국어누리게임</h2>
         <p>선생님이 알려주신 학급 코드를 입력하세요</p>
         <input type="text" id="codeInput" inputmode="numeric" maxlength="4" placeholder="0000">
         <button class="btn btn-primary btn-big" style="width:100%; margin-top:14px;" onclick="submitCode()">입장</button>
@@ -368,11 +368,17 @@ function playNextNotice(){
   if (noticeQueue.length === 0){ noticeShowing = false; return; }
   noticeShowing = true;
   const text = noticeQueue.shift();
-  let el = document.getElementById('gameNotice');
-  if (!el){ el = document.createElement('div'); el.id = 'gameNotice'; el.className = 'game-notice'; document.body.appendChild(el); }
+  // 매번 새 엘리먼트를 만들어서, 이전 알림 상태가 남아 안 사라지는 문제를 없애요.
+  document.querySelectorAll('.game-notice').forEach(el => el.remove());
+  const el = document.createElement('div');
+  el.className = 'game-notice';
   el.textContent = text;
+  document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => { el.classList.remove('show'); setTimeout(playNextNotice, 300); }, 2200);
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => { el.remove(); playNextNotice(); }, 300);
+  }, 2200);
 }
 
 // ---------- 화면: 게임 플레이 ----------
@@ -449,19 +455,22 @@ function renderGameScreen(g, gi, grp){
           <span class="direction-arrow">${(grp.direction||1) === 1 ? '↻ 시계 방향' : '↺ 반시계 방향'}</span>
         </div>
 
-        ${grp.phase === 'pre_turn' && !showReveal ? `<div class="deck-pile" id="deckPile" ${isMyTurn ? 'onclick="handleDraw()"' : ''}><div class="card-back"></div><div class="card-back"></div><div class="card-back"></div></div>` : ''}
+        ${grp.phase === 'pre_turn' && !showReveal ? `
+          <div class="deck-pile ${isMyTurn?'tappable':''}" id="deckPile" ${isMyTurn ? 'onclick="handleDraw()"' : ''}><div class="card-back"></div><div class="card-back"></div><div class="card-back"></div></div>
+          ${isMyTurn ? '<div class="deck-hint">덱을 톡 눌러서 카드를 뽑아요 👆</div>' : ''}
+        ` : ''}
         ${renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal)}
 
-        <div class="hand-section-title">내 점수 카드 (눌러서 맞춘 문제 보기)</div>
+        <div class="hand-section-title"><span class="pill-label score-pill">⭐ 점수 카드</span></div>
         <div class="hand-row">
           ${SCORE_TYPES.map(t => `
-            <div class="hand-chip score clickable" onclick="showSolvedModal('${t}')"><div class="ico">${CARD_ICONS[t]}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
+            <div class="hand-chip score clickable" onclick="showSolvedModal('${t}')"><div class="ico">${cardIcon(t,26)}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
           `).join('')}
         </div>
-        <div class="hand-section-title">내 특수 카드</div>
+        <div class="hand-section-title"><span class="pill-label">🎒 특수 카드</span></div>
         <div class="hand-row">
           ${HAND_TYPES.map(t => `
-            <div class="hand-chip"><div class="ico">${CARD_ICONS[t]}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
+            <div class="hand-chip"><div class="ico">${cardIcon(t,26)}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
           `).join('')}
         </div>
 
@@ -491,7 +500,7 @@ function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
     const anim = (key !== lastCardKey) ? 'flip-in' : '';
     lastCardKey = key;
     return `<div class="center-card type-${card.type} ${anim}">
-      <span class="type-tag" style="background:${CARD_COLORS[card.type]}">${CARD_ICONS[card.type]} ${CARD_LABELS[card.type]}</span>
+      <span class="type-tag" style="background:${CARD_COLORS[card.type]}">${cardIcon(card.type)} ${CARD_LABELS[card.type]}</span>
       <div class="qtext">${escapeHtml(card.text)}</div>
     </div>`;
   }
@@ -522,16 +531,16 @@ function renderTargetPicker(g, gi, grp, myId){
 }
 
 function renderEffectReveal(eff){
-  const icon = eff.effect==='steal' ? (eff.success ? (CARD_ICONS[eff.cardType]||'🎴') : '🛡️')
-             : eff.effect==='jump' ? (eff.success ? '⏭️' : '🛡️')
-             : (eff.success ? '🔀' : '🛡️');
+  const iconType = eff.effect==='steal' ? (eff.success ? (eff.cardType||'steal') : 'defense')
+                  : eff.effect==='jump' ? (eff.success ? 'jump' : 'defense')
+                  : (eff.success ? 'turn' : 'defense');
   const bg = (eff.effect==='steal' && eff.success && eff.cardType) ? CARD_COLORS[eff.cardType]
-           : (eff.success ? 'linear-gradient(155deg,#F59E0B,#B45309)' : 'linear-gradient(155deg,#38BDF8,#0369A1)');
+           : (eff.success ? CARD_COLORS.jump : CARD_COLORS.defense);
   const label = eff.effect==='steal' ? (eff.success ? '카드 강탈 성공!' : '방어 성공! 강탈을 막았어요')
               : eff.effect==='jump' ? (eff.success ? '다음 사람 턴 건너뛰기!' : '방어 성공! 점프를 막았어요')
               : (eff.success ? '진행 방향이 바뀌었어요!' : '방어 성공! 전환을 막았어요');
   return `<div class="center-card">
-    <div class="steal-reveal-card" style="background:${bg};">${icon}</div>
+    <div class="steal-reveal-card" style="background:${bg};">${cardIcon(iconType,44)}</div>
     <div class="qtext">${label}</div>
   </div>`;
 }
@@ -556,16 +565,15 @@ function renderActionArea(g, gi, grp, myId, isMyTurn, isJudge){
 
   if (grp.phase === 'pre_turn' && isMyTurn){
     const hand = grp.hands[myId] || emptyHand();
-    if (hand.jump > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('jump')">${CARD_ICONS.jump} 점프 사용</button>`;
-    if (hand.turn > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('turn')">${CARD_ICONS.turn} 전환 사용</button>`;
-    html += `<button class="btn btn-primary btn-big" onclick="handleDraw()">🎴 카드 뽑기</button>`;
+    if (hand.jump > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('jump')">${cardIcon('jump')} 점프 사용</button>`;
+    if (hand.turn > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('turn')">${cardIcon('turn')} 전환 사용</button>`;
   }
 
   if (grp.phase === 'awaiting_answer'){
     if (isMyTurn){
       const hand = grp.hands[myId] || emptyHand();
       if (hand.pass > 0 && !(grp.turnFlags && grp.turnFlags.passUsed)){
-        html += `<button class="btn btn-ghost" onclick="handlePass()">${CARD_ICONS.pass} 패스 사용</button>`;
+        html += `<button class="btn btn-ghost" onclick="handlePass()">${cardIcon('pass')} 패스 사용</button>`;
       }
     }
     if (isJudge){
@@ -620,7 +628,7 @@ function showSolvedModal(type){
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `<div class="modal-box" style="max-width:420px;">
-    <h2>${CARD_ICONS[type]} 내가 맞춘 문제</h2>
+    <h2>${cardIcon(type,26)} 내가 맞춘 문제</h2>
     <div class="solved-list">
       ${list.length ? list.map(s => `<div class="item">${escapeHtml(s.text)}</div>`).join('') : '<div class="hint">아직 맞춘 문제가 없어요</div>'}
     </div>
@@ -631,7 +639,7 @@ function showSolvedModal(type){
 }
 
 function showHelpModal(){
-  const rows = Object.keys(CARD_LABELS).map(t => `<div style="text-align:left; padding:8px 0; border-bottom:1px dashed var(--line);"><strong>${CARD_ICONS[t]} ${CARD_LABELS[t]}</strong><div class="hint">${cardHelpText(t)}</div></div>`).join('');
+  const rows = Object.keys(CARD_LABELS).map(t => `<div style="text-align:left; padding:8px 0; border-bottom:1px dashed var(--line);"><strong>${cardIcon(t)} ${CARD_LABELS[t]}</strong><div class="hint">${cardHelpText(t)}</div></div>`).join('');
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `<div class="modal-box" style="max-width:420px;">

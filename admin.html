@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>국어누리 관리자</title>
+<title>국어누리게임 관리자</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -20,7 +20,7 @@
 </div>
 
 <header>
-  <h1>📖 국어누리 <span style="font-weight:500; color:var(--ink-soft); font-size:16px;">관리자</span></h1>
+  <h1>📖 국어누리게임 <span style="font-weight:500; color:var(--ink-soft); font-size:16px;">관리자</span></h1>
   <p>학급 · 문제 세트 · 게임 진행을 관리해요</p>
   <button class="btn btn-ghost btn-small" style="margin-left:auto;" onclick="changeAdminPin()">PIN 변경</button>
 </header>
@@ -631,7 +631,7 @@ function renderCreateForm(){
             const d = DEFAULT_CARD_CONFIG[type];
             return `<tr>
               <td><input type="checkbox" id="cfg_${type}_on" checked></td>
-              <td>${CARD_ICONS[type]} ${CARD_LABELS[type]}</td>
+              <td>${cardIcon(type)} ${CARD_LABELS[type]}</td>
               <td><input type="number" id="cfg_${type}_ratio" value="${Math.round(d.ratio*100)}" style="width:70px;"> %</td>
             </tr>`;
           }).join('')}
@@ -729,6 +729,12 @@ function renderLobbyDetail(g){
   renderDndBoard(g);
 }
 
+function findSeatOf(groups, groupIndex, pid){
+  if (!groupIndex || !groups[groupIndex]) return null;
+  const found = Object.entries(groups[groupIndex].seats||{}).find(([,v]) => v===pid);
+  return found ? Number(found[0]) : null;
+}
+
 function renderDndBoard(g){
   const board = document.getElementById('dndBoard');
   if (!board) return;
@@ -741,13 +747,17 @@ function renderDndBoard(g){
     const members = Object.entries(players).filter(([pid,p]) => {
       if (zoneKey === 'unassigned') return !p.groupIndex;
       return String(p.groupIndex) === String(zoneKey);
-    });
+    }).sort((a,b) => (findSeatOf(groups,zoneKey,a[0])||99) - (findSeatOf(groups,zoneKey,b[0])||99));
     return `<div class="dnd-zone" data-zone="${zoneKey}"
               ondragover="event.preventDefault(); this.classList.add('dragover');"
               ondragleave="this.classList.remove('dragover');"
-              ondrop="handleDndDrop(event,'${zoneKey}')">
+              ondrop="handleDndDrop(event,'${zoneKey}',null)">
       <div class="zone-title">${title} ${zoneKey!=='unassigned' ? `(${members.length}/${g.meta.maxPerGroup})` : ''}</div>
-      ${members.map(([pid,p]) => `<div class="dnd-chip" draggable="true" ondragstart="handleDndStart(event,'${pid}','${p.groupIndex||''}')">${escapeHtml(p.name)}</div>`).join('') || '<div class="hint">없음</div>'}
+      ${members.map(([pid,p]) => `<div class="dnd-chip" draggable="true"
+            ondragstart="handleDndStart(event,'${pid}','${p.groupIndex||''}')"
+            ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('dragover');"
+            ondragleave="this.classList.remove('dragover');"
+            ondrop="event.stopPropagation(); handleDndDrop(event,'${zoneKey}','${pid}')">${escapeHtml(p.name)}</div>`).join('') || '<div class="hint">없음</div>'}
     </div>`;
   }).join('');
 }
@@ -756,14 +766,34 @@ function handleDndStart(e, pid, fromGroup){
   e.dataTransfer.setData('text/plain', JSON.stringify({ pid, fromGroup }));
 }
 
-async function handleDndDrop(e, toZone){
+// toZone에 드롭. ontoPid가 있으면 그 학생과 자리를 맞바꿔요(순서 조정), 없으면 빈 자리로 이동해요.
+async function handleDndDrop(e, toZone, ontoPid){
   e.preventDefault();
-  e.currentTarget.classList.remove('dragover');
+  document.querySelectorAll('.dnd-zone.dragover, .dnd-chip.dragover').forEach(el => el.classList.remove('dragover'));
   const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  if (data.pid === ontoPid) return;
   if (toZone === 'unassigned'){ showToast('미배정으로는 옮길 수 없어요'); return; }
-  if (String(data.fromGroup) === String(toZone)) return;
+
   const g = games[selectedGameId];
-  const seats = (g.groups[toZone] && g.groups[toZone].seats) || {};
+  const groups = g.groups || {};
+
+  if (ontoPid){
+    // 자리 맞바꾸기
+    const fromGroup = data.fromGroup || null;
+    const fromSeat = findSeatOf(groups, fromGroup, data.pid);
+    const toSeat = findSeatOf(groups, toZone, ontoPid);
+    if (toSeat){
+      await adminMovePlayer(selectedGameId, ontoPid, toZone, fromGroup || toZone, fromSeat || toSeat);
+    }
+    if (fromSeat || toSeat){
+      await adminMovePlayer(selectedGameId, data.pid, fromGroup, toZone, toSeat || fromSeat);
+    }
+    showToast('순서를 바꿨어요');
+    return;
+  }
+
+  if (String(data.fromGroup) === String(toZone)) return;
+  const seats = (groups[toZone] && groups[toZone].seats) || {};
   let seat = null;
   for (let s = 1; s <= g.meta.maxPerGroup; s++){ if (!seats[s]){ seat = s; break; } }
   if (!seat){ showToast(`${toZone}조 자리가 다 찼어요`); return; }
@@ -898,7 +928,7 @@ function openAdjustPanel(gi, pid){
     <div class="confirm-banner">
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         ${types.map(t => `
-          <span class="chip">${CARD_ICONS[t]} ${CARD_LABELS[t]}
+          <span class="chip">${cardIcon(t)} ${CARD_LABELS[t]}
             <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',-1)">-</button>
             <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',1)">+</button>
           </span>
