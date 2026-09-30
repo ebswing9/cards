@@ -30,13 +30,13 @@ const ALL_CARD_TYPES = ['general', 'steal', 'pass', 'jump', 'turn', 'defense'];
 
 // 카드 종류별 배경 그라데이션 (카드 시각 효과용)
 const CARD_COLORS = {
-  general: 'linear-gradient(155deg,#3B82F6,#1D4ED8)',
-  steal:   'linear-gradient(155deg,#F472B6,#BE185D)',
-  silence: 'linear-gradient(155deg,#94A3B8,#475569)',
-  pass:    'linear-gradient(155deg,#34D399,#047857)',
-  jump:    'linear-gradient(155deg,#FBBF24,#B45309)',
+  general: 'linear-gradient(155deg,#3E8EFF,#1E5FCC)',
+  steal:   'linear-gradient(155deg,#FF5D73,#D63955)',
+  silence: 'linear-gradient(155deg,#8F87B0,#5C5480)',
+  pass:    'linear-gradient(155deg,#17C3B2,#0E8F82)',
+  jump:    'linear-gradient(155deg,#FFB627,#C97F00)',
   turn:    'linear-gradient(155deg,#A78BFA,#6D28D9)',
-  defense: 'linear-gradient(155deg,#38BDF8,#0369A1)'
+  defense: 'linear-gradient(155deg,#3E8EFF,#2455B8)'
 };
 
 // 관리자가 게임을 만들 때 기본으로 켜지는 특수카드 비율
@@ -136,10 +136,19 @@ function judgeFor(order, currentId, direction){
   return nextInLine(order, currentId, direction);
 }
 
-function pushLog(group, text){
+// text는 "{name}님이 ..." 형태로, playerId가 있으면 화면에서 이름으로 치환해요.
+// 카드 종류가 드러나면 안 되는 상황에서는 text에 종류를 넣지 않아야 해요.
+function pushLog(group, text, playerId){
   group.log = group.log || [];
-  group.log.push({ ts: Date.now(), text });
+  group.log.push({ ts: Date.now(), text, playerId: playerId || null });
   if (group.log.length > 20) group.log = group.log.slice(-20);
+}
+
+function pushSolved(group, playerId, questionText, cardType){
+  group.solved = group.solved || {};
+  group.solved[playerId] = group.solved[playerId] || [];
+  group.solved[playerId].push({ text: questionText, type: cardType, ts: Date.now() });
+  if (group.solved[playerId].length > 200) group.solved[playerId] = group.solved[playerId].slice(-200);
 }
 
 // 한 턴이 끝날 때 공통으로 호출: 대기 중인 건너뛰기/방향전환 효과를 적용하고

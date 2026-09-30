@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>카드 게임 관리자</title>
+<title>국어누리 관리자</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -20,7 +20,7 @@
 </div>
 
 <header>
-  <h1>🎴 카드 게임 관리자</h1>
+  <h1>📖 국어누리 <span style="font-weight:500; color:var(--ink-soft); font-size:16px;">관리자</span></h1>
   <p>학급 · 문제 세트 · 게임 진행을 관리해요</p>
   <button class="btn btn-ghost btn-small" style="margin-left:auto;" onclick="changeAdminPin()">PIN 변경</button>
 </header>
@@ -560,11 +560,20 @@ function renderGameList(){
     const sel = id === selectedGameId ? 'selected' : '';
     return `<div class="list-item ${sel}" onclick="selectGame('${id}')">
       <div><div class="name">${escapeHtml(g.className||'')}</div><div class="sub">${escapeHtml(g.questionSetName||'')} · ${statusLabel(g.status)}</div></div>
+      ${g.status === 'ended' ? `<button class="btn btn-danger btn-small" onclick="event.stopPropagation(); handleDeleteGame('${id}')">삭제</button>` : ''}
     </div>`;
   }).join('');
 }
 
 function selectGame(id){ creatingGame = false; selectedGameId = id; renderGameList(); renderGameDetail(); }
+
+async function handleDeleteGame(id){
+  const name = games[id]?.meta?.className || '';
+  if (!confirm(`"${name}"의 종료된 게임 기록을 삭제할까요? 되돌릴 수 없어요.`)) return;
+  await db.ref('games/' + id).remove();
+  if (selectedGameId === id){ selectedGameId = null; document.getElementById('gameDetail').innerHTML = '<div class="empty-msg">왼쪽에서 게임을 선택하거나 새로 만드세요.</div>'; }
+  showToast('게임 기록을 삭제했어요');
+}
 
 function openCreateForm(){
   creatingGame = true; selectedGameId = null;
@@ -708,44 +717,57 @@ function renderLobbyDetail(g){
       }).join('')}
     </div>
     <div class="section">
-      <div class="section-title">모둠 수동 배치</div>
-      <div class="hint">학생이 잘못 들어갔거나 자리를 못 고를 때 여기서 직접 옮겨줄 수 있어요.</div>
-      <table style="margin-top:8px;">
-        <thead><tr><th>이름</th><th>현재 위치</th><th style="width:280px">이동</th></tr></thead>
-        <tbody>
-          ${Object.entries(players).map(([pid,p]) => {
-            const curGroup = p.groupIndex || '';
-            let curSeat = '';
-            if (curGroup && groups[curGroup]){
-              const found = Object.entries(groups[curGroup].seats||{}).find(([,v]) => v===pid);
-              if (found) curSeat = found[0];
-            }
-            const groupOptions = Object.keys(groups).sort((a,b)=>a-b).map(gi => `<option value="${gi}" ${String(gi)===String(curGroup)?'selected':''}>${gi}조</option>`).join('');
-            const seatOptions = Array.from({length:g.meta.maxPerGroup},(_,i)=>i+1).map(s => `<option value="${s}" ${String(s)===String(curSeat)?'selected':''}>${s}번</option>`).join('');
-            return `<tr>
-              <td>${escapeHtml(p.name)}</td>
-              <td class="hint">${curGroup ? curGroup+'조 '+(curSeat||'-')+'번' : '미배정'}</td>
-              <td>
-                <select id="moveGroup_${pid}" style="width:70px;">${groupOptions}</select>
-                <select id="moveSeat_${pid}" style="width:70px;">${seatOptions}</select>
-                <button class="btn btn-ghost btn-small" onclick="handleMovePlayer('${pid}','${curGroup}')">이동</button>
-              </td>
-            </tr>`;
-          }).join('') || '<tr><td colspan="3" class="empty-msg">아직 입장한 학생이 없어요.</td></tr>'}
-        </tbody>
-      </table>
+      <div class="section-title">모둠 수동 배치 (드래그해서 옮기기)</div>
+      <div class="hint">학생 이름을 다른 모둠 칸으로 끌어다 놓으면 그 모둠의 빈자리로 옮겨져요.</div>
+      <div class="dnd-board" id="dndBoard"></div>
     </div>
     <div class="section">
       <button class="btn btn-primary btn-big" onclick="handleStartGame('${selectedGameId}')">게임 시작</button>
       <div class="hint">준비가 안 된 학생이 있어도 지금 자리한 인원으로 시작할 수 있어요.</div>
     </div>
   `;
+  renderDndBoard(g);
 }
 
-async function handleMovePlayer(pid, fromGroup){
-  const toGroup = document.getElementById(`moveGroup_${pid}`).value;
-  const toSeat = document.getElementById(`moveSeat_${pid}`).value;
-  await adminMovePlayer(selectedGameId, pid, fromGroup || null, toGroup, toSeat);
+function renderDndBoard(g){
+  const board = document.getElementById('dndBoard');
+  if (!board) return;
+  const players = g.players || {};
+  const groups = g.groups || {};
+  const zones = ['unassigned', ...Object.keys(groups).sort((a,b)=>a-b)];
+
+  board.innerHTML = zones.map(zoneKey => {
+    const title = zoneKey === 'unassigned' ? '미배정' : `${zoneKey}조`;
+    const members = Object.entries(players).filter(([pid,p]) => {
+      if (zoneKey === 'unassigned') return !p.groupIndex;
+      return String(p.groupIndex) === String(zoneKey);
+    });
+    return `<div class="dnd-zone" data-zone="${zoneKey}"
+              ondragover="event.preventDefault(); this.classList.add('dragover');"
+              ondragleave="this.classList.remove('dragover');"
+              ondrop="handleDndDrop(event,'${zoneKey}')">
+      <div class="zone-title">${title} ${zoneKey!=='unassigned' ? `(${members.length}/${g.meta.maxPerGroup})` : ''}</div>
+      ${members.map(([pid,p]) => `<div class="dnd-chip" draggable="true" ondragstart="handleDndStart(event,'${pid}','${p.groupIndex||''}')">${escapeHtml(p.name)}</div>`).join('') || '<div class="hint">없음</div>'}
+    </div>`;
+  }).join('');
+}
+
+function handleDndStart(e, pid, fromGroup){
+  e.dataTransfer.setData('text/plain', JSON.stringify({ pid, fromGroup }));
+}
+
+async function handleDndDrop(e, toZone){
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  if (toZone === 'unassigned'){ showToast('미배정으로는 옮길 수 없어요'); return; }
+  if (String(data.fromGroup) === String(toZone)) return;
+  const g = games[selectedGameId];
+  const seats = (g.groups[toZone] && g.groups[toZone].seats) || {};
+  let seat = null;
+  for (let s = 1; s <= g.meta.maxPerGroup; s++){ if (!seats[s]){ seat = s; break; } }
+  if (!seat){ showToast(`${toZone}조 자리가 다 찼어요`); return; }
+  await adminMovePlayer(selectedGameId, data.pid, data.fromGroup || null, toZone, seat);
   showToast('자리를 옮겼어요');
 }
 

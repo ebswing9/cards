@@ -177,13 +177,13 @@ function performDraw(group, playerId){
     group.currentCard = card;
     group.phase = 'awaiting_answer';
   } else if (card.type === 'silence'){
-    pushLog(group, '침묵 카드가 나와 이번 턴을 쉬어요');
+    pushLog(group, '{name}님이 침묵 카드가 나와 이번 턴을 쉬어요', playerId);
     group = applyEndTurn(group);
   } else {
     group.hands = group.hands || {};
     group.hands[playerId] = group.hands[playerId] || emptyHand();
     group.hands[playerId][card.type] = (group.hands[playerId][card.type] || 0) + 1;
-    pushLog(group, `${CARD_LABELS[card.type]}를 획득했어요`);
+    pushLog(group, '{name}님이 카드를 뽑았어요', playerId);
     group = applyEndTurn(group);
   }
   return group;
@@ -213,7 +213,7 @@ function usePassCard(gameId, g, playerId){
     group.deck = group.deck || [];
     group.deck.unshift(group.currentCard);
     group.currentCard = null;
-    pushLog(group, '패스 카드를 사용했어요');
+    pushLog(group, '{name}님이 패스 카드를 사용했어요', playerId);
     return performDraw(group, playerId);
   });
 }
@@ -242,7 +242,7 @@ function useSpecialCard(gameId, g, playerId, type){
     group.hands[playerId] = hand;
     group.turnFlags = group.turnFlags || {};
     group.turnFlags.specialUsed = true;
-    pushLog(group, `${CARD_LABELS[type]}를 사용했어요`);
+    pushLog(group, `{name}님이 ${CARD_LABELS[type]}를 사용했어요`, playerId);
 
     if (targetIds.length === 0) return group; // 대상이 없으면 효과 없이 소모만
 
@@ -280,7 +280,7 @@ function resolveDefenseWindow(gameId, g){
       if (used){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
-        pushLog(group, '방어 카드로 강탈을 막았어요');
+        pushLog(group, '{name}님이 방어 카드로 강탈을 막았어요', targetId);
         group.lastEffect = { effect: 'steal', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
       } else {
         const entries = Object.entries(targetHand).filter(([, n]) => n > 0);
@@ -295,7 +295,7 @@ function resolveDefenseWindow(gameId, g){
           const actorHand = group.hands[dw.actorId] || emptyHand();
           actorHand[chosen] = (actorHand[chosen] || 0) + 1;
           group.hands[dw.actorId] = actorHand;
-          pushLog(group, '카드 한 장을 강탈했어요');
+          pushLog(group, '{name}님이 카드를 강탈했어요', dw.actorId);
         }
         group.lastEffect = { effect: 'steal', success: true, cardType: chosen, actorId: dw.actorId, targetId, ts: Date.now() };
       }
@@ -309,7 +309,7 @@ function resolveDefenseWindow(gameId, g){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
         group.pendingSkip = false;
-        pushLog(group, '방어 카드로 점프를 막았어요');
+        pushLog(group, '{name}님이 방어 카드로 점프를 막았어요', targetId);
         group.lastEffect = { effect: 'jump', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
       } else {
         group.pendingSkip = true;
@@ -333,7 +333,7 @@ function resolveDefenseWindow(gameId, g){
       if (winner){
         group.hands[winner].defense -= 1;
         group.pendingFlip = false;
-        pushLog(group, '방어 카드로 전환을 막았어요');
+        pushLog(group, '{name}님이 방어 카드로 전환을 막았어요', winner);
         group.lastEffect = { effect: 'turn', success: false, actorId: dw.actorId, targetId: winner, ts: Date.now() };
       } else {
         group.pendingFlip = true;
@@ -419,7 +419,8 @@ function resolveJudge(gameId, g){
       group.hands = group.hands || {};
       group.hands[playerId] = group.hands[playerId] || emptyHand();
       group.hands[playerId][card.type] += 1;
-      pushLog(group, '정답! 카드를 획득했어요');
+      pushLog(group, '{name}님이 정답을 맞혀 카드를 획득했어요', playerId);
+      pushSolved(group, playerId, card.text, card.type);
       if (card.type === 'steal'){
         const order = computeOrder(group.seats, group.excludedIds);
         const targets = order.filter(id => id !== playerId && handTotal(group.hands[id]) > 0);
@@ -440,12 +441,12 @@ function resolveJudge(gameId, g){
       group.deck.unshift(card);
       group.currentCard = null;
       group.pendingJudge = null;
-      pushLog(group, '오답, 카드는 덱 맨 아래로 돌아갔어요');
+      pushLog(group, '{name}님이 오답, 카드는 덱 맨 아래로 돌아갔어요', playerId);
       group = applyEndTurn(group);
     } else {
       group.currentCard = null;
       group.pendingJudge = null;
-      pushLog(group, '모두 몰라서 카드가 제외됐어요');
+      pushLog(group, '{name}님의 문제, 모두 몰라서 카드가 제외됐어요', playerId);
       group = applyEndTurn(group);
     }
     return group;

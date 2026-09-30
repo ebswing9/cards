@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>카드 게임</title>
+<title>국어누리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
 <style>
@@ -50,7 +50,7 @@ function renderCodeScreen(){
   app.innerHTML = `
     <div class="center-screen">
       <div class="card-box">
-        <h2>🎴 카드 게임</h2>
+        <h2>📖 국어누리</h2>
         <p>선생님이 알려주신 학급 코드를 입력하세요</p>
         <input type="text" id="codeInput" inputmode="numeric" maxlength="4" placeholder="0000">
         <button class="btn btn-primary btn-big" style="width:100%; margin-top:14px;" onclick="submitCode()">입장</button>
@@ -257,7 +257,7 @@ function route(){
     return;
   }
 
-  checkGroupLog(myGroupIndex, grp);
+  checkGroupLog(myGroupIndex, grp, players);
 
   if (grp.phase === 'ended' || meta.status === 'ended'){
     renderResults(g, myGroupIndex, grp);
@@ -344,12 +344,17 @@ function renderWaitingRoom(g, gi, grp){
 
 // ---------- 게임 진행 알림 (토스트) ----------
 let lastLogSeen = {};
-function checkGroupLog(gi, grp){
+function formatLogText(entry, players){
+  if (!entry.playerId) return entry.text;
+  const name = (players[entry.playerId] && players[entry.playerId].name) || '???';
+  return entry.text.replace('{name}', name);
+}
+function checkGroupLog(gi, grp, players){
   const key = session.gameId + '_' + gi;
   const log = grp.log || [];
   if (!(key in lastLogSeen)){ lastLogSeen[key] = log.length; return; }
   if (log.length > lastLogSeen[key]){
-    for (let i = lastLogSeen[key]; i < log.length; i++) pushNotice(log[i].text);
+    for (let i = lastLogSeen[key]; i < log.length; i++) pushNotice(formatLogText(log[i], players));
     lastLogSeen[key] = log.length;
   }
 }
@@ -386,15 +391,25 @@ function renderGameScreen(g, gi, grp){
   const meta = g.meta;
   const players = g.players || {};
   const myId = session.studentId;
+
+  if (meta.status === 'paused'){
+    app.innerHTML = `
+      <div class="pause-overlay">
+        <div class="icon">⏸️</div>
+        <h2>선생님이 게임을 잠시 멈췄어요</h2>
+        <p>남은 시간 ${formatClock(meta.remainingMsAtPause)} · 곧 다시 시작해요</p>
+      </div>
+    `;
+    return;
+  }
+
   const order = computeOrder(grp.seats||{}, grp.excludedIds||{});
   const isMyTurn = grp.currentPlayerId === myId;
   const isJudge = grp.judgeId === myId;
   const myHand = (grp.hands && grp.hands[myId]) || emptyHand();
 
-  if (meta.status === 'playing' && meta.endAt) endGroupIfTimeUp(session.gameId, gi, meta.endAt);
-
-  const endAt = meta.status === 'paused' ? null : meta.endAt;
-  const remaining = meta.status === 'paused' ? meta.remainingMsAtPause : (endAt ? endAt - serverNow() : null);
+  if (meta.endAt) endGroupIfTimeUp(session.gameId, gi, meta.endAt);
+  const remaining = meta.endAt ? meta.endAt - serverNow() : null;
 
   const showReveal = grp.lastEffect && (Date.now() - grp.lastEffect.ts < 2600);
 
@@ -407,7 +422,6 @@ function renderGameScreen(g, gi, grp){
           <button class="btn btn-ghost btn-small" onclick="showHelpModal()">카드 설명</button>
         </div>
       </div>
-      ${meta.status === 'paused' ? '<div class="pause-banner">⏸ 선생님이 게임을 잠시 멈췄어요</div>' : ''}
       ${remaining != null && remaining <= 60000 && remaining > 0 ? '<div class="last-turn-banner">⏰ 곧 시간이 끝나요</div>' : ''}
 
       <div class="game-wrap">
@@ -418,8 +432,12 @@ function renderGameScreen(g, gi, grp){
             const total = handTotal(h);
             const badges = [];
             if (grp.judgeId === pid) badges.push('<span class="badge judge">판정자</span>');
-            const activeCls = grp.currentPlayerId === pid ? 'active-turn' : '';
-            return `<div class="seat-chip ${pid===myId?'me':''} ${activeCls}">
+            const cls = [
+              pid===myId ? 'me' : '',
+              grp.currentPlayerId === pid ? 'active-turn' : '',
+              grp.judgeId === pid ? 'judge-turn' : ''
+            ].join(' ');
+            return `<div class="seat-chip ${cls}">
               <div class="nm">${escapeHtml(p?.name||'?')}</div>
               <div class="card-stack">${total>0 ? '<div class="cs"></div><div class="cs"></div><div class="cs"></div><div class="num">'+total+'</div>' : '<span class="hint">0</span>'}</div>
               <div class="badges">${badges.join('')}</div>
@@ -431,12 +449,13 @@ function renderGameScreen(g, gi, grp){
           <span class="direction-arrow">${(grp.direction||1) === 1 ? '↻ 시계 방향' : '↺ 반시계 방향'}</span>
         </div>
 
+        ${grp.phase === 'pre_turn' && !showReveal ? `<div class="deck-pile" id="deckPile" ${isMyTurn ? 'onclick="handleDraw()"' : ''}><div class="card-back"></div><div class="card-back"></div><div class="card-back"></div></div>` : ''}
         ${renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal)}
 
-        <div class="hand-section-title">내 점수 카드</div>
+        <div class="hand-section-title">내 점수 카드 (눌러서 맞춘 문제 보기)</div>
         <div class="hand-row">
           ${SCORE_TYPES.map(t => `
-            <div class="hand-chip score"><div class="ico">${CARD_ICONS[t]}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
+            <div class="hand-chip score clickable" onclick="showSolvedModal('${t}')"><div class="ico">${CARD_ICONS[t]}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
           `).join('')}
         </div>
         <div class="hand-section-title">내 특수 카드</div>
@@ -477,13 +496,29 @@ function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
     </div>`;
   }
   if (grp.phase === 'steal_pick'){
-    if (isMyTurn) return `<div class="center-card"><div class="qtext">누구의 카드를 뺏을까요?</div></div>`;
+    if (isMyTurn) return renderTargetPicker(g, gi, grp, myId);
     return `<div class="center-card"><div class="qtext">강탈 대상을 고르는 중이에요</div></div>`;
   }
   if (grp.phase === 'awaiting_defense'){
     return `<div class="center-card"><div class="qtext">효과가 발동됐어요...</div></div>`;
   }
   return '<div class="center-card"><div class="qtext">덱이 모두 소진됐어요</div></div>';
+}
+
+function renderTargetPicker(g, gi, grp, myId){
+  const order = computeOrder(grp.seats, grp.excludedIds);
+  const targets = order.filter(id => id !== myId && handTotal(grp.hands[id]) > 0);
+  return `<div class="target-picker">
+    <div class="label">🎭 누구의 카드를 뺏을까요?</div>
+    <div class="target-grid">
+      ${targets.map(id => `
+        <div class="target-card" onclick="handleStealTarget('${id}')">
+          ${escapeHtml((g.players[id]||{}).name||'?')}<br>
+          <span style="font-size:11px; font-weight:600;">카드 ${handTotal(grp.hands[id])}장</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 function renderEffectReveal(eff){
@@ -506,10 +541,11 @@ function renderStealFan(grp){
   if (lastFanDeadline !== dw.deadline){ lastFanDeadline = dw.deadline; pickedFanIndex = null; }
   const targetId = dw.targetIds[0];
   const count = Math.min(8, Math.max(1, handTotal(grp.hands[targetId])));
+  const remain = Math.max(0, Math.round((dw.deadline - serverNow())/1000));
   return `<div class="center-card">
-    <div class="hint">뒷면 카드 중 하나를 골라보세요</div>
+    <div class="hint">${pickedFanIndex===null ? '뒷면 카드 중 하나를 골라보세요' : `결과를 기다리는 중... ${remain}초`}</div>
     <div class="steal-fan">
-      ${Array.from({length:count},(_,i)=>`<div class="fan-card ${pickedFanIndex===i?'picked':''}" onclick="pickFanCard(${i})">🂠</div>`).join('')}
+      ${Array.from({length:count},(_,i)=>`<div class="card-back ${pickedFanIndex===i?'picked':''}" onclick="pickFanCard(${i})"></div>`).join('')}
     </div>
   </div>`;
 }
@@ -522,7 +558,7 @@ function renderActionArea(g, gi, grp, myId, isMyTurn, isJudge){
     const hand = grp.hands[myId] || emptyHand();
     if (hand.jump > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('jump')">${CARD_ICONS.jump} 점프 사용</button>`;
     if (hand.turn > 0) html += `<button class="btn btn-ghost" onclick="handleSpecial('turn')">${CARD_ICONS.turn} 전환 사용</button>`;
-    html += `<button class="btn btn-primary btn-big" onclick="handleDraw()">카드 뽑기</button>`;
+    html += `<button class="btn btn-primary btn-big" onclick="handleDraw()">🎴 카드 뽑기</button>`;
   }
 
   if (grp.phase === 'awaiting_answer'){
@@ -545,14 +581,6 @@ function renderActionArea(g, gi, grp, myId, isMyTurn, isJudge){
     const remain = Math.max(0, Math.round((grp.pendingJudge.deadline - serverNow())/1000));
     html += `<button class="btn btn-danger" onclick="handleCancelJudge()">판정 취소 (${remain}초)</button>`;
     scheduleOnce('judge_'+gi+'_'+grp.pendingJudge.deadline, grp.pendingJudge.deadline, () => resolveJudge(session.gameId, gi));
-  }
-
-  if (grp.phase === 'steal_pick' && isMyTurn){
-    const order = computeOrder(grp.seats, grp.excludedIds);
-    const targets = order.filter(id => id !== myId && handTotal(grp.hands[id]) > 0);
-    html += '</div><div class="action-row">' + targets.map(id => `
-      <button class="btn btn-ghost" onclick="handleStealTarget('${id}')">${escapeHtml((g.players[id]||{}).name||'?')}에게서 뺏기</button>
-    `).join('');
   }
 
   html += '</div>';
@@ -585,6 +613,23 @@ function renderDefenseModal(g, gi, grp, myId){
   `;
 }
 
+function showSolvedModal(type){
+  const gi = curGi();
+  const grp = currentGame.groups[gi];
+  const list = ((grp.solved || {})[session.studentId] || []).filter(s => s.type === type).slice().reverse();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal-box" style="max-width:420px;">
+    <h2>${CARD_ICONS[type]} 내가 맞춘 문제</h2>
+    <div class="solved-list">
+      ${list.length ? list.map(s => `<div class="item">${escapeHtml(s.text)}</div>`).join('') : '<div class="hint">아직 맞춘 문제가 없어요</div>'}
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px;" onclick="this.closest('.modal-overlay').remove()">닫기</button>
+  </div>`;
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
 function showHelpModal(){
   const rows = Object.keys(CARD_LABELS).map(t => `<div style="text-align:left; padding:8px 0; border-bottom:1px dashed var(--line);"><strong>${CARD_ICONS[t]} ${CARD_LABELS[t]}</strong><div class="hint">${cardHelpText(t)}</div></div>`).join('');
   const overlay = document.createElement('div');
@@ -612,7 +657,11 @@ function cardHelpText(t){
 
 // ---------- 액션 핸들러 ----------
 function curGi(){ return (currentGame.players[session.studentId]||{}).groupIndex; }
-function handleDraw(){ drawCard(session.gameId, curGi(), session.studentId); }
+function handleDraw(){
+  const pile = document.getElementById('deckPile');
+  if (pile) pile.classList.add('drawing');
+  setTimeout(() => drawCard(session.gameId, curGi(), session.studentId), 180);
+}
 function handlePass(){ usePassCard(session.gameId, curGi(), session.studentId); }
 function handleSpecial(type){ useSpecialCard(session.gameId, curGi(), session.studentId, type); }
 function handleJudge(result){ proposeJudge(session.gameId, curGi(), session.studentId, result); }
