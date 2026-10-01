@@ -177,12 +177,13 @@ function performDraw(group, playerId){
     group.currentCard = card;
     group.phase = 'awaiting_answer';
   } else if (card.type === 'silence'){
-    pushLog(group, '{name}님이 침묵 카드가 나와 이번 턴을 쉬어요', playerId);
+    group.lastSilence = { playerId, ts: serverNow() }; // 학생 화면에서 전체 화면 효과로 보여줘요
     group = applyEndTurn(group);
   } else {
     group.hands = group.hands || {};
     group.hands[playerId] = group.hands[playerId] || emptyHand();
     group.hands[playerId][card.type] = (group.hands[playerId][card.type] || 0) + 1;
+    group.lastDraw = { playerId, type: card.type, ts: serverNow() }; // 뽑은 본인 화면에서만 사용
     pushLog(group, '{name}님이 카드를 뽑았어요', playerId);
     group = applyEndTurn(group);
   }
@@ -271,12 +272,13 @@ function resolveDefenseWindow(gameId, g){
     if (!group || !group.defenseWindow) return group;
     if (serverNow() < group.defenseWindow.deadline) return; // 아직 시간이 안 됨
     const dw = group.defenseWindow;
+    const responses = dw.responses || {}; // Firebase 는 빈 객체를 저장하지 않아서 undefined 일 수 있어요
     const order = computeOrder(group.seats, group.excludedIds);
 
     if (dw.effect === 'steal'){
       const targetId = dw.targetIds[0];
       const targetHand = group.hands[targetId] || emptyHand();
-      const used = dw.responses[targetId] === true && targetHand.defense > 0;
+      const used = responses[targetId] === true && targetHand.defense > 0;
       if (used){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
@@ -304,7 +306,7 @@ function resolveDefenseWindow(gameId, g){
     } else if (dw.effect === 'jump'){
       const targetId = dw.targetIds[0];
       const targetHand = group.hands[targetId] || emptyHand();
-      const used = dw.responses[targetId] === true && targetHand.defense > 0;
+      const used = responses[targetId] === true && targetHand.defense > 0;
       if (used){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
@@ -325,7 +327,7 @@ function resolveDefenseWindow(gameId, g){
       for (let i = 0; i < order.length; i++){
         cursor = nextInLine(order, cursor, group.direction || 1);
         if (cursor === dw.actorId) break;
-        if (dw.responses[cursor] === true){
+        if (responses[cursor] === true){
           const h = group.hands[cursor] || emptyHand();
           if (h.defense > 0){ winner = cursor; break; }
         }
@@ -441,6 +443,7 @@ function resolveJudge(gameId, g){
         if (targets.length === 0){
           group = applyEndTurn(group);
         } else {
+          pushLog(group, '{name}님의 문제는 강탈 카드였어요! 누구의 카드를 뺏을까요?', playerId);
           group.phase = 'steal_pick';
         }
       } else {
@@ -555,7 +558,7 @@ function restartGroup(gameId, g, allQuestions, cardConfig, deckMode, deckCap){
       phase: order.length > 0 ? 'pre_turn' : 'ended', turnNumber: 1,
       turnFlags: { specialUsed: false, passUsed: false },
       currentCard: null, pendingJudge: null, defenseWindow: null,
-      excludedIds: {}, hands,
+      excludedIds: {}, hands, lastSilence: null, lastDraw: null, lastEffect: null,
       log: [{ ts: Date.now(), text: '모둠이 다시 시작됐어요' }]
     });
   })();
