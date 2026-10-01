@@ -1,5 +1,10 @@
-/* TT투게더 (눈누 제공 웹폰트 - 별도 파일 설치 없이 인터넷으로 불러와요) */
-@font-face{ font-family:'TtTogether'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/TTTogetherA.woff') format('woff'); font-weight:normal; font-display:swap; }
+/* 페이퍼로지 (눈누 제공 웹폰트, OFL 라이선스 - 굵기별로 필요한 것만 불러와요) */
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight:600; font-display:swap; }
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight:800; font-display:swap; }
+@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2'); font-weight:900; font-display:swap; }
 
 /* ======================================================
    국어누리게임 - 파스텔 디자인 시스템
@@ -46,7 +51,7 @@
 *{box-sizing:border-box;}
 body{
   margin:0;
-  font-family:'TtTogether','Pretendard', -apple-system, sans-serif;
+  font-family:'Paperlogy','Pretendard', -apple-system, sans-serif;
   font-synthesis:none;
   background:var(--bg);
   color:var(--ink);
@@ -448,7 +453,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border-bottom:1px dashed var(--line); font-family:'Pretendard', sans-serif; font-size:14px;
 }
 .qstat-list li:last-child{ border-bottom:none; }
-.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:'TtTogether','Pretendard', sans-serif; }
+.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:'Paperlogy','Pretendard', sans-serif; }
 .qstat-list .qtxt{ flex:1; line-height:1.5; }
 .qstat-list .qcount{ flex:none; font-size:12.5px; padding:2px 11px; border-radius:20px; background:var(--violet-tint); color:var(--violet-dark); }
 .qstat-list .qcount.incorrect{ background:var(--coral-tint); color:var(--coral-dark); }
