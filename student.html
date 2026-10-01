@@ -536,7 +536,6 @@ function renderGameScreen(g, gi, grp){
       ${remaining != null && remaining <= 60000 && remaining > 0 ? '<div class="last-turn-banner">⏰ 곧 시간이 끝나요</div>' : ''}
 
       <div class="game-wrap">
-        <div class="gcol-main">
         <div class="seat-ring">
           ${order.map(pid => {
             const p = players[pid];
@@ -566,19 +565,16 @@ function renderGameScreen(g, gi, grp){
         ` : ''}
         ${renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal)}
 
-        ${renderActionArea(g, gi, grp, myId, isMyTurn, isJudge)}
+        <div class="hand-section-title"><span class="pill-label score-pill clickable" onclick="showSolvedModal()">⭐ 점수 카드 ›</span></div>
+        <div class="hand-row">
+          ${SCORE_TYPES.map(t => handChipHtml(t, myHand[t]||0, true)).join('')}
+        </div>
+        <div class="hand-section-title"><span class="pill-label score-pill">🎒 특수 카드</span></div>
+        <div class="hand-row">
+          ${HAND_TYPES.map(t => handChipHtml(t, myHand[t]||0, false)).join('')}
         </div>
 
-        <div class="gcol-side">
-          <div class="hand-section-title"><span class="pill-label score-pill clickable" onclick="showSolvedModal()">⭐ 점수 카드 ›</span></div>
-          <div class="hand-row">
-            ${SCORE_TYPES.map(t => handChipHtml(t, myHand[t]||0, true)).join('')}
-          </div>
-          <div class="hand-section-title"><span class="pill-label score-pill">🎒 특수 카드</span></div>
-          <div class="hand-row">
-            ${HAND_TYPES.map(t => handChipHtml(t, myHand[t]||0, false)).join('')}
-          </div>
-        </div>
+        ${renderActionArea(g, gi, grp, myId, isMyTurn, isJudge)}
       </div>
 
       ${renderDefenseModal(g, gi, grp, myId)}
@@ -612,7 +608,7 @@ function renderDrawReveal(type){
 function handChipHtml(t, n, isScore){
   return `<div class="hand-chip t-${t} ${isScore?'score':''} ${n>0?'':'zero'}">
     <div class="n">${n}</div>
-    <div class="ico">${cardIcon(t,30)}</div>
+    <div class="ico">${cardIcon(t,26)}</div>
     <div class="lb">${CARD_LABELS[t]}</div>
   </div>`;
 }
@@ -645,10 +641,10 @@ function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
       const who = escapeHtml((g.players[grp.currentPlayerId] || {}).name || '?');
       status = `<div class="wait-pill">💬 ${who}님이 문제를 푸는 중</div>`;
     }
-    return `<div class="center-card is-question t-${shownType} ${anim} ${glow}">
+    return `${status}<div class="center-card is-question t-${shownType} ${anim} ${glow}">
       <span class="type-tag">${cardIcon(shownType,20)} ${CARD_LABELS[shownType]}</span>
       <div class="qpaper"><span class="qbadge">Q</span><div class="qtext">${escapeHtml(card.text)}</div></div>
-    </div>${status}`;
+    </div>`;
   }
   if (grp.phase === 'steal_pick'){
     if (isMyTurn) return renderTargetPicker(g, gi, grp, myId);
@@ -832,7 +828,10 @@ function handleDraw(){
 }
 function handlePass(){ usePassCard(session.gameId, curGi(), session.studentId); }
 function handleSpecial(type){ useSpecialCard(session.gameId, curGi(), session.studentId, type); }
-function handleJudge(result){ proposeJudge(session.gameId, curGi(), session.studentId, result); }
+function handleJudge(result){
+  const sec = currentGame.meta.judgeCancelSec != null ? currentGame.meta.judgeCancelSec : 3;
+  proposeJudge(session.gameId, curGi(), session.studentId, result, sec * 1000);
+}
 function handleCancelJudge(){ cancelJudge(session.gameId, curGi(), session.studentId); }
 function handleStealTarget(targetId){ chooseStealTarget(session.gameId, curGi(), session.studentId, targetId); }
 function handleDefenseRespond(use){ respondDefense(session.gameId, curGi(), session.studentId, use); }

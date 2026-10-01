@@ -80,7 +80,7 @@ const DEFAULT_CARD_CONFIG = {
 };
 
 const DEFENSE_WINDOW_MS = 8000;
-const JUDGE_CANCEL_MS = 5000;
+const JUDGE_CANCEL_MS = 3000; // 기본값 (게임 만들 때 관리자가 바꿀 수 있어요)
 
 function emptyHand(){
   return { general: 0, steal: 0, pass: 0, jump: 0, turn: 0, defense: 0 };

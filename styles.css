@@ -1,10 +1,8 @@
-/* 페이퍼로지 (눈누 제공 웹폰트, OFL 라이선스 - 굵기별로 필요한 것만 불러와요) */
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight:400; font-display:swap; }
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight:500; font-display:swap; }
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight:600; font-display:swap; }
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight:800; font-display:swap; }
-@font-face{ font-family:'Paperlogy'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2'); font-weight:900; font-display:swap; }
+/* 쿠키런 (눈누 제공 웹폰트: 400 / 700 / 900)
+   다른 폰트로 바꾸고 싶으면 아래 :root 의 --font-main 한 줄만 바꾸면 돼요. */
+@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/CookieRun-Regular.woff') format('woff'); font-weight:400; font-display:swap; }
+@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/CookieRunOTF-Bold00.woff') format('woff'); font-weight:700; font-display:swap; }
+@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/CookieRunOTF-Black00.woff') format('woff'); font-weight:900; font-display:swap; }
 
 /* ======================================================
    국어누리게임 - 파스텔 디자인 시스템
@@ -47,11 +45,14 @@
 
   --brick:#D2506B;
   --radius:20px;
+
+  /* 화면 전체에 쓰는 '귀여운' 글꼴 */
+  --font-main:'CookieRun','Pretendard', -apple-system, sans-serif;
 }
 *{box-sizing:border-box;}
 body{
   margin:0;
-  font-family:'Paperlogy','Pretendard', -apple-system, sans-serif;
+  font-family:var(--font-main);
   font-synthesis:none;
   background:var(--bg);
   color:var(--ink);
@@ -214,23 +215,17 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .pause-banner, .last-turn-banner{ text-align:center; padding:9px; font-weight:800; font-size:13.5px; }
 .pause-banner{ background:var(--gold); color:#6B4300; }
 .last-turn-banner{ background:var(--coral); color:#7A2E42; }
-.game-wrap{padding:10px 14px 14px; max-width:640px; margin:0 auto;}
-@media (min-width:900px){
-  .game-wrap{ max-width:1100px; display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:22px; align-items:start; padding-top:14px; }
-  .gcol-side{ background:rgba(255,255,255,0.55); border:1.5px solid var(--line); border-radius:24px; padding:6px 14px 16px; }
-  .gcol-side .hand-row{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; justify-items:center; }
-  .gcol-side .hand-chip{ width:100%; max-width:78px; }
-}
+.game-wrap{padding:6px 14px 10px; max-width:640px; margin:0 auto;}
 
 .direction-arrow{
-  display:inline-block; padding:6px 16px; border-radius:20px;
+  display:inline-block; padding:3px 14px; border-radius:20px;
   background:#fff; color:var(--primary-dark); font-weight:800; font-size:13px; border:1.5px solid var(--line);
 }
 
 /* ---- 좌석 ---- */
 .seat-ring{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:8px; padding-top:8px; }
 .seat-chip{
-  border:2px solid var(--line); border-radius:18px; padding:11px 13px; text-align:center; min-width:86px;
+  border:2px solid var(--line); border-radius:18px; padding:7px 12px; text-align:center; min-width:84px;
   background:#fff; position:relative; color:var(--ink); transition:transform 0.2s, box-shadow 0.2s;
   box-shadow:0 4px 12px rgba(118,159,205,0.14);
 }
@@ -292,7 +287,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 
 /* 문제 카드: 파스텔 카드 틀 + 하얀 종이 + Q 스티커 */
 .center-card.is-question{
-  position:relative; margin-top:24px; padding:30px 14px 16px; border-radius:30px; gap:0; align-items:stretch;
+  position:relative; margin-top:22px; padding:26px 12px 12px; border-radius:30px; gap:0; align-items:stretch;
   background:var(--cc-bg); border:4px solid #fff;
   box-shadow:0 0 0 3px var(--cc-line), 0 16px 34px rgba(74,114,168,0.25);
 }
@@ -307,15 +302,15 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border:3px solid var(--cc-line); box-shadow:0 4px 10px rgba(74,114,168,0.2);
 }
 .qpaper{
-  position:relative; background:#fff; border-radius:22px; padding:24px 16px 22px;
-  border:2.5px dashed var(--cc-line); min-height:84px; display:flex; align-items:center; justify-content:center;
+  position:relative; background:#fff; border-radius:22px; padding:18px 14px 16px;
+  border:2.5px dashed var(--cc-line); min-height:62px; display:flex; align-items:center; justify-content:center;
 }
 .qpaper .qbadge{
   position:absolute; top:-15px; left:-9px; width:34px; height:34px; border-radius:50%;
   background:var(--cc-ac); color:#fff; font-size:17px; display:flex; align-items:center; justify-content:center;
   transform:rotate(-10deg); border:3px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.2);
 }
-.qpaper .qtext{ font-size:22px; font-weight:700; line-height:1.55; letter-spacing:-0.01em; word-break:keep-all; }
+.qpaper .qtext{ font-size:21px; font-weight:700; line-height:1.55; letter-spacing:-0.01em; word-break:keep-all; }
 
 /* ---- 카드 뒷면 & 덱 더미 ---- */
 .card-back{
@@ -324,7 +319,8 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border:2.5px solid #fff; box-shadow:0 6px 16px rgba(74,114,168,0.38);
   transition:transform 0.15s;
 }
-.deck-pile{ display:flex; justify-content:center; margin-bottom:2px; position:relative; height:88px; cursor:default; }
+.deck-pile{ display:flex; justify-content:center; margin-bottom:2px; position:relative; height:74px; cursor:default; }
+.deck-pile .card-back{ width:48px; height:68px; }
 .deck-pile.tappable{ cursor:pointer; }
 .deck-pile .card-back{ position:absolute; }
 .deck-pile .card-back:nth-child(1){ transform:translate(-5px,4px) rotate(-4deg); }
@@ -335,17 +331,17 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .deck-hint{ text-align:center; font-size:12px; color:var(--ink-soft); margin-bottom:14px; font-weight:700; }
 
 /* ---- 손패 카드 ---- */
-.hand-section-title{ text-align:center; margin:12px 0 10px; }
-.hand-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; justify-content:center;}
+.hand-section-title{ text-align:center; margin:8px 0 8px; }
+.hand-row{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:4px; justify-content:center;}
 .hand-chip{
-  position:relative; width:78px; padding:5px 5px 7px; text-align:center; cursor:default;
+  position:relative; width:72px; padding:4px 4px 6px; text-align:center; cursor:default;
   background:#fff; border:2px solid var(--cc-line, var(--line)); border-radius:17px;
   box-shadow:0 6px 14px rgba(118,159,205,0.22); color:var(--ink); transition:transform 0.15s, opacity 0.15s;
 }
 .hand-chip.clickable{ cursor:pointer; }
 .hand-chip.clickable:hover{ transform:translateY(-4px); }
 .hand-chip .ico{
-  height:54px; border-radius:12px; margin-bottom:6px; display:flex; align-items:center; justify-content:center;
+  height:42px; border-radius:12px; margin-bottom:4px; display:flex; align-items:center; justify-content:center;
   background:var(--cc-tint, var(--primary-tint));
 }
 .hand-chip .lb{ font-size:11.5px; color:var(--cc-ac, var(--ink)); line-height:1.2; }
@@ -357,8 +353,8 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .hand-chip.zero{ opacity:0.5; filter:saturate(0.55); }
 .hand-chip.zero .n{ background:#B8C4CF; }
 
-.action-row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:16px;}
-.judge-row button{flex:1; min-width:100px; font-size:15.5px; padding:15px 10px; border-radius:18px; box-shadow:0 8px 20px rgba(0,0,0,0.12);}
+.action-row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:10px;}
+.judge-row button{flex:1; min-width:100px; font-size:15.5px; padding:12px 10px; border-radius:18px; box-shadow:0 8px 20px rgba(0,0,0,0.12);}
 .judge-row button:active{ transform:scale(0.95); }
 .btn-correct{background:linear-gradient(155deg,#43D49A,#1FA971); color:#fff; box-shadow:0 8px 20px rgba(31,169,113,0.4) !important;}
 .btn-incorrect{background:linear-gradient(155deg,#FF8095,#E8465F); color:#fff; box-shadow:0 8px 20px rgba(232,70,95,0.4) !important;}
@@ -453,7 +449,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border-bottom:1px dashed var(--line); font-family:'Pretendard', sans-serif; font-size:14px;
 }
 .qstat-list li:last-child{ border-bottom:none; }
-.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:'Paperlogy','Pretendard', sans-serif; }
+.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:var(--font-main); }
 .qstat-list .qtxt{ flex:1; line-height:1.5; }
 .qstat-list .qcount{ flex:none; font-size:12.5px; padding:2px 11px; border-radius:20px; background:var(--violet-tint); color:var(--violet-dark); }
 .qstat-list .qcount.incorrect{ background:var(--coral-tint); color:var(--coral-dark); }
@@ -472,7 +468,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 
 /* ---- 다른 사람을 기다리는 중 알림 ---- */
 .wait-pill{
-  display:table; margin:-6px auto 16px; padding:6px 18px; border-radius:999px; font-size:13px;
+  display:table; margin:4px auto 10px; padding:6px 18px; border-radius:999px; font-size:13px;
   background:#fff; color:var(--primary-dark); border:1.5px solid var(--primary-pale); box-shadow:0 4px 12px rgba(118,159,205,0.18);
 }
 .wait-pill.judge{ background:var(--violet-tint); color:var(--violet-dark); border-color:#C5D0DC; }

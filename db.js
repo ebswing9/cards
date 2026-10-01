@@ -60,6 +60,8 @@ async function createGame(params){
       maxPerGroup: params.maxPerGroup,
       deckMode: params.deckMode,
       cardConfig: params.cardConfig,
+      deckCap: params.deckCap || null,          // 비어 있으면 문제를 전부 사용
+      judgeCancelSec: params.judgeCancelSec != null ? params.judgeCancelSec : 3,
       status: 'lobby',
       createdAt: Date.now()
     },
@@ -74,7 +76,7 @@ async function startGame(gameId, allQuestions){
   const game = snap.val();
   if (!game) return;
   const cfg = game.meta.cardConfig;
-  const deckCap = game.meta.deckCap || Math.max(15, game.meta.durationMinutes * 3);
+  const deckCap = game.meta.deckCap || null; // null 이면 상한 없이 문제 전부 사용
 
   let sharedPool = null;
   if (game.meta.deckMode === 'common'){
@@ -396,13 +398,13 @@ function setAdminPin(pin){
 }
 
 // 판정 제안 (5초 취소 대기) -> 이후 resolveJudge 가 실제로 반영
-function proposeJudge(gameId, g, judgeId, result){
+function proposeJudge(gameId, g, judgeId, result, cancelMs){
   return groupRef(gameId, g).transaction(group => {
     if (!group) return group;
     if (group.phase !== 'awaiting_answer') return;
     if (group.judgeId !== judgeId) return;
     if (!group.currentCard) return;
-    group.pendingJudge = { result, judgeId, deadline: serverNow() + JUDGE_CANCEL_MS };
+    group.pendingJudge = { result, judgeId, deadline: serverNow() + (cancelMs != null ? cancelMs : JUDGE_CANCEL_MS) };
     group.phase = 'judge_pending';
     return group;
   });
