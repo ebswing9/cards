@@ -967,12 +967,17 @@ function collectQuestionStats(g, kind){
       .sort(byCount);
     perGroup[gi] = list;
     list.forEach(r => {
-      total[r.qid] = total[r.qid] || { qid: r.qid, text: r.text, count: 0 };
-      total[r.qid].count += r.count;
+      const t = total[r.qid] = total[r.qid] || { qid: r.qid, text: r.text, count: 0, byGroup: {} };
+      t.count += r.count;
+      t.byGroup[gi] = r.count;
     });
   });
   return { perGroup, totalList: Object.values(total).sort(byCount) };
 }
+
+// 모둠별 목록 접기/펼치기 상태
+let openStatGroups = {};
+function toggleStatGroup(key){ openStatGroups[key] = !openStatGroups[key]; renderGameDetail(); }
 
 function renderQuestionStatBlocks(g, kind){
   const groups = g.groups || {};
@@ -986,15 +991,84 @@ function renderQuestionStatBlocks(g, kind){
     ? `<ol class="qstat-list">${list.map(r => `<li><span class="qtxt">${escapeHtml(r.text)}</span><span class="qcount ${kind}">${r.count}회</span></li>`).join('')}</ol>`
     : `<div class="hint">${label} 기록이 없어요 👏</div>`;
 
-  const totalBlock = `<div class="panel" style="margin-bottom:12px;">
-      <div style="font-weight:700; margin-bottom:6px;">전체 모둠 합산 <span class="hint">(${totalList.length}문제)</span></div>
-      ${listHtml(totalList)}
+  const totalBlock = `<div class="panel stat-total" style="margin-bottom:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px;" onclick="openStatSlides('${kind}')">
+      <div><div style="font-weight:700;">전체 모둠 합산</div><div class="hint">${totalList.length}문제 · 눌러서 크게 넘겨보기</div></div>
+      <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); openStatSlides('${kind}')">▶ 슬라이드로 보기</button>
     </div>`;
-  const groupBlocks = Object.keys(perGroup).map(gi => `<div class="panel" style="margin-bottom:12px;">
-      <div style="font-weight:700; margin-bottom:6px;">${gi}조 <span class="hint">(${perGroup[gi].length}문제)</span></div>
-      ${listHtml(perGroup[gi])}
-    </div>`).join('');
+  const groupBlocks = Object.keys(perGroup).map(gi => {
+    const key = `${kind}_${gi}`;
+    const open = !!openStatGroups[key];
+    return `<div class="panel" style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleStatGroup('${key}')">
+        <div style="font-weight:700;">${gi}조 <span class="hint">(${perGroup[gi].length}문제)</span></div>
+        <span class="hint">${open ? '▲ 접기' : '▼ 펼치기'}</span>
+      </div>
+      ${open ? `<div style="margin-top:8px;">${listHtml(perGroup[gi])}</div>` : ''}
+    </div>`;
+  }).join('');
   return totalBlock + groupBlocks;
+}
+
+// ---------- 전체 합산: PPT처럼 크게 넘겨보기 ----------
+let statSlide = null;
+function openStatSlides(kind){
+  const g = games[selectedGameId];
+  const { totalList } = collectQuestionStats(g, kind);
+  if (!totalList.length){ showToast('기록이 없어요'); return; }
+  statSlide = { kind, items: totalList, i: 0, className: g.meta.className };
+  document.addEventListener('keydown', statSlideKey);
+  renderStatSlide();
+}
+function renderStatSlide(){
+  if (!statSlide) return;
+  let el = document.getElementById('statSlide');
+  if (!el){ el = document.createElement('div'); el.id = 'statSlide'; el.className = 'slide-overlay'; document.body.appendChild(el); }
+  const { kind, items, i, className } = statSlide;
+  const it = items[i];
+  const title = kind === 'unknown' ? '🤷 모두 모름 문제' : '❌ 오답 많은 문제';
+  const groupsTxt = Object.entries(it.byGroup).sort((a,b) => b[1]-a[1]).map(([gi,n]) => `<span>${gi}조 ${n}회</span>`).join('');
+  el.innerHTML = `
+    <div class="slide-top">
+      <div class="ttl">${escapeHtml(className)} · ${title}</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-small" onclick="statSlideFullscreen()">전체화면</button>
+        <button class="btn btn-small" onclick="closeStatSlide()">닫기 ✕</button>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="slide-rank">${i + 1}위</div>
+      <div class="slide-q">${escapeHtml(it.text)}</div>
+      <div class="slide-count ${kind}">전체 ${it.count}회</div>
+      <div class="slide-groups">${groupsTxt}</div>
+    </div>
+    <div class="slide-nav">
+      <button onclick="statSlideGo(-1)" ${i === 0 ? 'disabled' : ''}>◀</button>
+      <div class="pg">${i + 1} / ${items.length}</div>
+      <button onclick="statSlideGo(1)" ${i === items.length - 1 ? 'disabled' : ''}>▶</button>
+    </div>`;
+}
+function statSlideGo(d){
+  if (!statSlide) return;
+  statSlide.i = Math.min(statSlide.items.length - 1, Math.max(0, statSlide.i + d));
+  renderStatSlide();
+}
+function statSlideKey(e){
+  if (!statSlide) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' '){ e.preventDefault(); statSlideGo(1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); statSlideGo(-1); }
+  else if (e.key === 'Escape'){ closeStatSlide(); }
+}
+function statSlideFullscreen(){
+  const el = document.getElementById('statSlide');
+  if (!document.fullscreenElement){ if (el && el.requestFullscreen) el.requestFullscreen(); }
+  else document.exitFullscreen();
+}
+function closeStatSlide(){
+  document.removeEventListener('keydown', statSlideKey);
+  if (document.fullscreenElement) document.exitFullscreen();
+  const el = document.getElementById('statSlide');
+  if (el) el.remove();
+  statSlide = null;
 }
 
 function renderResultsDetail(g){

@@ -1,7 +1,5 @@
-/* 넷마블체 (눈누 제공, 무료 배포 폰트) */
-@font-face{ font-family:'Netmarble'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleL.woff') format('woff'); font-weight:300; font-display:swap; }
-@font-face{ font-family:'Netmarble'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleM.woff') format('woff'); font-weight:500; font-display:swap; }
-@font-face{ font-family:'Netmarble'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleB.woff') format('woff'); font-weight:700; font-display:swap; }
+/* TT투게더 (눈누 제공 웹폰트 - 별도 파일 설치 없이 인터넷으로 불러와요) */
+@font-face{ font-family:'TtTogether'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/TTTogetherA.woff') format('woff'); font-weight:normal; font-display:swap; }
 
 /* ======================================================
    국어누리게임 - 파스텔 디자인 시스템
@@ -38,9 +36,9 @@
   --blue-tint:#EAF2F8;
 
   /* 판정자 표시용 보라 */
-  --violet:#8E7CE0;
-  --violet-dark:#6A55C9;
-  --violet-tint:#EFEBFC;
+  --violet:#3F5775;
+  --violet-dark:#2C3E50;
+  --violet-tint:#E6ECF3;
 
   --brick:#D2506B;
   --radius:20px;
@@ -48,7 +46,7 @@
 *{box-sizing:border-box;}
 body{
   margin:0;
-  font-family:'Netmarble','Pretendard', -apple-system, sans-serif;
+  font-family:'TtTogether','Pretendard', -apple-system, sans-serif;
   font-synthesis:none;
   background:var(--bg);
   color:var(--ink);
@@ -211,7 +209,13 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .pause-banner, .last-turn-banner{ text-align:center; padding:9px; font-weight:800; font-size:13.5px; }
 .pause-banner{ background:var(--gold); color:#6B4300; }
 .last-turn-banner{ background:var(--coral); color:#7A2E42; }
-.game-wrap{padding:16px; max-width:640px; margin:0 auto;}
+.game-wrap{padding:10px 14px 14px; max-width:640px; margin:0 auto;}
+@media (min-width:900px){
+  .game-wrap{ max-width:1100px; display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:22px; align-items:start; padding-top:14px; }
+  .gcol-side{ background:rgba(255,255,255,0.55); border:1.5px solid var(--line); border-radius:24px; padding:6px 14px 16px; }
+  .gcol-side .hand-row{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; justify-items:center; }
+  .gcol-side .hand-chip{ width:100%; max-width:78px; }
+}
 
 .direction-arrow{
   display:inline-block; padding:6px 16px; border-radius:20px;
@@ -219,7 +223,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 }
 
 /* ---- 좌석 ---- */
-.seat-ring{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:16px; padding-top:6px; }
+.seat-ring{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:8px; padding-top:8px; }
 .seat-chip{
   border:2px solid var(--line); border-radius:18px; padding:11px 13px; text-align:center; min-width:86px;
   background:#fff; position:relative; color:var(--ink); transition:transform 0.2s, box-shadow 0.2s;
@@ -231,7 +235,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 /* 판정자: 발광 없이 칩에 붙어 있는 보라색 배지 */
 .seat-chip .badge.judge{
   position:absolute; top:-10px; right:-6px; font-size:10.5px; padding:2px 9px;
-  box-shadow:0 2px 6px rgba(106,85,201,0.35); border:1.5px solid #fff;
+  box-shadow:0 2px 6px rgba(44,62,80,0.3); border:1.5px solid #fff;
 }
 
 .seat-chip.me{ border-color:var(--blue-dark); background:var(--blue-tint); }
@@ -274,7 +278,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 /* ---- 중앙 카드 ---- */
 .center-card{
   background:var(--surface); color:var(--ink); border:none; border-radius:24px; padding:24px;
-  text-align:center; margin-bottom:16px; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  text-align:center; margin-bottom:12px; min-height:100px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
   box-shadow:0 14px 34px rgba(118,159,205,0.22); perspective:900px;
 }
 .center-card.flip-in{ animation:flipIn 0.5s cubic-bezier(.2,.9,.3,1.2); }
@@ -315,7 +319,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border:2.5px solid #fff; box-shadow:0 6px 16px rgba(74,114,168,0.38);
   transition:transform 0.15s;
 }
-.deck-pile{ display:flex; justify-content:center; margin-bottom:2px; position:relative; height:92px; cursor:default; }
+.deck-pile{ display:flex; justify-content:center; margin-bottom:2px; position:relative; height:88px; cursor:default; }
 .deck-pile.tappable{ cursor:pointer; }
 .deck-pile .card-back{ position:absolute; }
 .deck-pile .card-back:nth-child(1){ transform:translate(-5px,4px) rotate(-4deg); }
@@ -326,7 +330,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .deck-hint{ text-align:center; font-size:12px; color:var(--ink-soft); margin-bottom:14px; font-weight:700; }
 
 /* ---- 손패 카드 ---- */
-.hand-section-title{ text-align:center; margin:14px 0 10px; }
+.hand-section-title{ text-align:center; margin:12px 0 10px; }
 .hand-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; justify-content:center;}
 .hand-chip{
   position:relative; width:78px; padding:5px 5px 7px; text-align:center; cursor:default;
@@ -345,7 +349,6 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   display:flex; align-items:center; justify-content:center; font-size:14px;
   background:var(--cc-ac, var(--primary-dark)); color:#fff; border:2.5px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.18);
 }
-.hand-chip.score{ box-shadow:0 6px 16px rgba(255,184,0,0.28); }
 .hand-chip.zero{ opacity:0.5; filter:saturate(0.55); }
 .hand-chip.zero .n{ background:#B8C4CF; }
 
@@ -445,7 +448,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   border-bottom:1px dashed var(--line); font-family:'Pretendard', sans-serif; font-size:14px;
 }
 .qstat-list li:last-child{ border-bottom:none; }
-.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:'Netmarble', sans-serif; }
+.qstat-list li::before{ content:counter(q); flex:none; width:22px; height:22px; border-radius:50%; background:var(--primary-tint); color:var(--primary-dark); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-family:'TtTogether','Pretendard', sans-serif; }
 .qstat-list .qtxt{ flex:1; line-height:1.5; }
 .qstat-list .qcount{ flex:none; font-size:12.5px; padding:2px 11px; border-radius:20px; background:var(--violet-tint); color:var(--violet-dark); }
 .qstat-list .qcount.incorrect{ background:var(--coral-tint); color:var(--coral-dark); }
@@ -467,7 +470,7 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
   display:table; margin:-6px auto 16px; padding:6px 18px; border-radius:999px; font-size:13px;
   background:#fff; color:var(--primary-dark); border:1.5px solid var(--primary-pale); box-shadow:0 4px 12px rgba(118,159,205,0.18);
 }
-.wait-pill.judge{ background:var(--violet-tint); color:var(--violet-dark); border-color:#CFC5F5; }
+.wait-pill.judge{ background:var(--violet-tint); color:var(--violet-dark); border-color:#C5D0DC; }
 
 /* ---- 로그아웃 ---- */
 .logout-link{
@@ -503,3 +506,51 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 .sfx-text{ font-size:34px; font-weight:900; letter-spacing:0.05em; text-shadow:0 4px 14px rgba(0,0,0,0.35); animation:sfxText 0.5s 0.25s both; }
 .sfx-sub{ font-size:17px; line-height:1.55; opacity:0.95; animation:sfxText 0.5s 0.45s both; }
 @keyframes sfxText{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:translateY(0); } }
+
+/* ---- 작은 글씨는 가독성을 위해 Pretendard ---- */
+.badge, .chip, .pill-label, .seat-chip .cnt, .hand-chip .lb, .wait-pill, .logout-link, .list-item .sub,
+.code-card .label, table th, .qstat-list .qcount, .direction-arrow, .card-stack .num, .pause-banner, .last-turn-banner,
+button.btn.btn-small, .target-card span, .deck-hint, .toast, .confirm-banner, .section-title, .radio-row, .slide-groups span{
+  font-family:'Pretendard', -apple-system, sans-serif; font-synthesis:weight style;
+}
+.badge, .chip, .pill-label, .hand-chip .lb, .wait-pill, button.btn.btn-small, .direction-arrow, .qstat-list .qcount{ font-weight:700; }
+.hand-chip .lb{ font-size:11px; }
+
+/* ---- 침묵/강탈 전체 화면 효과 ---- */
+.silence-fx.fx-steal{ background:radial-gradient(circle at 50% 45%, rgba(170,70,100,0.66), rgba(60,15,40,0.93)); }
+.sfx-card{
+  position:relative; width:118px; height:160px; border-radius:18px; border:5px solid #fff; margin-bottom:30px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 0 3px rgba(255,255,255,0.3), 0 20px 50px rgba(0,0,0,0.4);
+  animation:sfxFlip 0.9s cubic-bezier(.2,.9,.3,1.2) both, sfxFloat 2s ease-in-out 0.9s infinite;
+}
+.sfx-card::before{ content:""; position:absolute; inset:7px; border:2px dashed rgba(255,255,255,0.95); border-radius:11px; }
+.sfx-card::after{
+  content:""; position:absolute; inset:0; border-radius:18px; border:4px solid rgba(255,255,255,0.7);
+  animation:sfxRing 1.6s ease-out 0.9s infinite;
+}
+@keyframes sfxFlip{ from{ transform:rotateY(180deg) scale(0.2); opacity:0; } to{ transform:rotateY(0) scale(1); opacity:1; } }
+@keyframes sfxFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+.fx-steal .sfx-text{ font-size:38px; }
+
+/* ---- 관리자: 크게 넘겨보기 (슬라이드) ---- */
+.slide-overlay{
+  position:fixed; inset:0; z-index:120; display:flex; flex-direction:column; padding:20px 28px 24px; color:#fff;
+  background:linear-gradient(160deg,#2C3E50,#3A5675);
+}
+.slide-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.slide-top .ttl{ font-size:17px; opacity:0.92; }
+.slide-top .btn{ background:rgba(255,255,255,0.14); color:#fff; }
+.slide-body{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:28px; padding:10px 5vw; min-height:0; }
+.slide-rank{ font-size:20px; background:rgba(255,255,255,0.14); padding:6px 22px; border-radius:999px; }
+.slide-q{ font-family:'Pretendard', sans-serif; font-size:clamp(26px,4.4vw,58px); font-weight:800; line-height:1.5; max-width:1100px; word-break:keep-all; }
+.slide-count{ font-size:clamp(20px,2.4vw,32px); padding:6px 26px; border-radius:999px; background:#FF8095; color:#fff; }
+.slide-count.unknown{ background:#6FA3DE; }
+.slide-groups{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.slide-groups span{ background:rgba(255,255,255,0.14); padding:5px 15px; border-radius:999px; font-size:15px; font-weight:700; }
+.slide-nav{ display:flex; align-items:center; justify-content:center; gap:22px; }
+.slide-nav .pg{ font-size:18px; min-width:90px; text-align:center; font-family:'Pretendard', sans-serif; font-weight:700; }
+.slide-nav button{ width:54px; height:54px; border-radius:50%; border:none; font-size:22px; cursor:pointer; background:#fff; color:#2C3E50; font-family:inherit; }
+.slide-nav button:disabled{ opacity:0.3; cursor:default; }
+.stat-total{ transition:background 0.15s; }
+.stat-total:hover{ background:var(--primary-tint); }

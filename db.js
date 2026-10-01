@@ -283,7 +283,7 @@ function resolveDefenseWindow(gameId, g){
         targetHand.defense -= 1;
         group.hands[targetId] = targetHand;
         pushLog(group, '{name}님이 방어 카드로 강탈을 막았어요', targetId);
-        group.lastEffect = { effect: 'steal', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
+        group.lastEffect = { effect: 'steal', success: false, actorId: dw.actorId, targetId, ts: serverNow() };
       } else {
         const entries = Object.entries(targetHand).filter(([, n]) => n > 0);
         const totalN = entries.reduce((s, [, n]) => s + n, 0);
@@ -297,9 +297,8 @@ function resolveDefenseWindow(gameId, g){
           const actorHand = group.hands[dw.actorId] || emptyHand();
           actorHand[chosen] = (actorHand[chosen] || 0) + 1;
           group.hands[dw.actorId] = actorHand;
-          pushLog(group, '{name}님이 카드를 강탈했어요', dw.actorId);
         }
-        group.lastEffect = { effect: 'steal', success: true, cardType: chosen, actorId: dw.actorId, targetId, ts: Date.now() };
+        group.lastEffect = { effect: 'steal', success: true, cardType: chosen, actorId: dw.actorId, targetId, ts: serverNow() };
       }
       group = applyEndTurn(group);
 
@@ -312,11 +311,11 @@ function resolveDefenseWindow(gameId, g){
         group.hands[targetId] = targetHand;
         group.pendingSkip = false;
         pushLog(group, '{name}님이 방어 카드로 점프를 막았어요', targetId);
-        group.lastEffect = { effect: 'jump', success: false, actorId: dw.actorId, targetId, ts: Date.now() };
+        group.lastEffect = { effect: 'jump', success: false, actorId: dw.actorId, targetId, ts: serverNow() };
       } else {
         group.pendingSkip = true;
         pushLog(group, '다음 사람의 턴이 건너뛰어질 예정이에요');
-        group.lastEffect = { effect: 'jump', success: true, actorId: dw.actorId, targetId, ts: Date.now() };
+        group.lastEffect = { effect: 'jump', success: true, actorId: dw.actorId, targetId, ts: serverNow() };
       }
       group.defenseWindow = null;
       group.phase = 'pre_turn';
@@ -336,11 +335,11 @@ function resolveDefenseWindow(gameId, g){
         group.hands[winner].defense -= 1;
         group.pendingFlip = false;
         pushLog(group, '{name}님이 방어 카드로 전환을 막았어요', winner);
-        group.lastEffect = { effect: 'turn', success: false, actorId: dw.actorId, targetId: winner, ts: Date.now() };
+        group.lastEffect = { effect: 'turn', success: false, actorId: dw.actorId, targetId: winner, ts: serverNow() };
       } else {
         group.pendingFlip = true;
         pushLog(group, '진행 방향이 반대로 바뀔 예정이에요');
-        group.lastEffect = { effect: 'turn', success: true, actorId: dw.actorId, ts: Date.now() };
+        group.lastEffect = { effect: 'turn', success: true, actorId: dw.actorId, ts: serverNow() };
       }
       group.defenseWindow = null;
       group.phase = 'pre_turn';
@@ -443,7 +442,7 @@ function resolveJudge(gameId, g){
         if (targets.length === 0){
           group = applyEndTurn(group);
         } else {
-          pushLog(group, '{name}님의 문제는 강탈 카드였어요! 누구의 카드를 뺏을까요?', playerId);
+          group.lastStealReveal = { playerId, ts: serverNow() }; // 전원에게 '사실은 강탈 카드였어요' 효과
           group.phase = 'steal_pick';
         }
       } else {
@@ -558,7 +557,7 @@ function restartGroup(gameId, g, allQuestions, cardConfig, deckMode, deckCap){
       phase: order.length > 0 ? 'pre_turn' : 'ended', turnNumber: 1,
       turnFlags: { specialUsed: false, passUsed: false },
       currentCard: null, pendingJudge: null, defenseWindow: null,
-      excludedIds: {}, hands, lastSilence: null, lastDraw: null, lastEffect: null,
+      excludedIds: {}, hands, lastSilence: null, lastDraw: null, lastEffect: null, lastStealReveal: null,
       log: [{ ts: Date.now(), text: '모둠이 다시 시작됐어요' }]
     });
   })();
