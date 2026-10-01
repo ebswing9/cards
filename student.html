@@ -419,6 +419,14 @@ function renderGameScreen(g, gi, grp){
 
   const showReveal = grp.lastEffect && (Date.now() - grp.lastEffect.ts < 2600);
 
+  // 모둠원 중 누구의 화면이 켜져 있든 제때 결과가 반영되도록, 역할과 무관하게 전원이 예약해요.
+  if (grp.phase === 'awaiting_defense' && grp.defenseWindow){
+    scheduleOnce('defense_'+gi+'_'+grp.defenseWindow.deadline, grp.defenseWindow.deadline, () => resolveDefenseWindow(session.gameId, gi));
+  }
+  if (grp.phase === 'judge_pending' && grp.pendingJudge){
+    scheduleOnce('judge_'+gi+'_'+grp.pendingJudge.deadline, grp.pendingJudge.deadline, () => resolveJudge(session.gameId, gi));
+  }
+
   app.innerHTML = `
     <div class="felt-bg">
       <div class="game-top">
@@ -509,7 +517,7 @@ function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
     return `<div class="center-card"><div class="qtext">강탈 대상을 고르는 중이에요</div></div>`;
   }
   if (grp.phase === 'awaiting_defense'){
-    return `<div class="center-card"><div class="qtext">효과가 발동됐어요...</div></div>`;
+    return `<div class="center-card"><div class="qtext">카드 효과가 발동됐어요</div></div>`;
   }
   return '<div class="center-card"><div class="qtext">덱이 모두 소진됐어요</div></div>';
 }
@@ -588,7 +596,6 @@ function renderActionArea(g, gi, grp, myId, isMyTurn, isJudge){
   if (grp.phase === 'judge_pending' && isJudge){
     const remain = Math.max(0, Math.round((grp.pendingJudge.deadline - serverNow())/1000));
     html += `<button class="btn btn-danger" onclick="handleCancelJudge()">판정 취소 (${remain}초)</button>`;
-    scheduleOnce('judge_'+gi+'_'+grp.pendingJudge.deadline, grp.pendingJudge.deadline, () => resolveJudge(session.gameId, gi));
   }
 
   html += '</div>';
@@ -600,7 +607,6 @@ function renderDefenseModal(g, gi, grp, myId){
   if (!dw || !dw.targetIds.includes(myId)) return '';
   const already = dw.responses && dw.responses[myId] !== undefined;
   const remain = Math.max(0, Math.round((dw.deadline - serverNow())/1000));
-  scheduleOnce('defense_'+gi+'_'+dw.deadline, dw.deadline, () => resolveDefenseWindow(session.gameId, gi));
 
   const effectLabel = { steal:'강탈', jump:'점프', turn:'전환' }[dw.effect] || dw.effect;
   const myHand = grp.hands[myId] || emptyHand();

@@ -28,26 +28,26 @@ const HAND_TYPES = ['pass', 'jump', 'turn', 'defense'];
 const SCORE_TYPES = ['general', 'steal'];
 const ALL_CARD_TYPES = ['general', 'steal', 'pass', 'jump', 'turn', 'defense'];
 
-// 카드 종류별 파스텔 배경 그라데이션 (카드 시각 효과용)
+// 카드 종류별 배경 그라데이션 - 전부 한 톤(파란 계열) 안에서 명도로만 구분해요
 const CARD_COLORS = {
-  general: 'linear-gradient(155deg,#CFE3FF,#9FC2F7)',
-  steal:   'linear-gradient(155deg,#FFD3E0,#FFAFC7)',
-  silence: 'linear-gradient(155deg,#E4E0F5,#C7C0E8)',
-  pass:    'linear-gradient(155deg,#CFF5E8,#A6E8D0)',
-  jump:    'linear-gradient(155deg,#FFEAC2,#FFD98A)',
-  turn:    'linear-gradient(155deg,#E5DBFF,#CBB8FF)',
-  defense: 'linear-gradient(155deg,#D6EBFF,#B3D9FF)'
+  general: 'linear-gradient(155deg,#F7FBFC,#B9D7EA)',
+  steal:   'linear-gradient(155deg,#B9D7EA,#769FCD)',
+  silence: 'linear-gradient(155deg,#E8EEF2,#C7D3DC)',
+  pass:    'linear-gradient(155deg,#D6E6F2,#A9C9DC)',
+  jump:    'linear-gradient(155deg,#D6E6F2,#9DBEDC)',
+  turn:    'linear-gradient(155deg,#C9D4EC,#9AA9D4)',
+  defense: 'linear-gradient(155deg,#B9D7EA,#769FCD)'
 };
 
-// 카드 종류별 진한 포인트 색 (아이콘, 테두리 등에 사용)
+// 카드 종류별 진한 포인트 색 (아이콘 등에 사용) - 같은 계열에서 채도/명도만 다르게
 const CARD_ACCENTS = {
-  general: '#5B8DEF',
-  steal:   '#F4739E',
-  silence: '#9089C4',
-  pass:    '#3FBF97',
-  jump:    '#E8A93C',
-  turn:    '#9B7EE8',
-  defense: '#4FA3E8'
+  general: '#4A72A8',
+  steal:   '#3C5A85',
+  silence: '#8295A6',
+  pass:    '#4A8FA8',
+  jump:    '#5A7FB0',
+  turn:    '#6A6FA8',
+  defense: '#4A72A8'
 };
 
 // 카드 종류별 귀여운 SVG 아이콘 (currentColor로 색을 입혀요)

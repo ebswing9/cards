@@ -362,6 +362,17 @@ async function adminMovePlayer(gameId, playerId, fromGroup, toGroup, toSeat){
   await pickSeat(gameId, toGroup, toSeat, playerId);
 }
 
+// 두 학생의 자리를 서로 맞바꿔요. pickSeat을 두 번 쓰면 "서로 상대 자리가 빌 때까지
+// 기다리다 둘 다 실패"하는 교착 상태가 생기므로, 한 번의 다중 경로 update로 한 번에 바꿔요.
+async function swapPlayers(gameId, aId, aGroup, aSeat, bId, bGroup, bSeat){
+  const updates = {};
+  updates[`groups/${aGroup}/seats/${aSeat}`] = bId;
+  updates[`groups/${bGroup}/seats/${bSeat}`] = aId;
+  updates[`players/${aId}/groupIndex`] = bGroup;
+  updates[`players/${bId}/groupIndex`] = aGroup;
+  await db.ref(`games/${gameId}`).update(updates);
+}
+
 // ---------- 학생 PIN ----------
 
 function getStudentPin(classId, studentId){

@@ -778,16 +778,12 @@ async function handleDndDrop(e, toZone, ontoPid){
   const groups = g.groups || {};
 
   if (ontoPid){
-    // 자리 맞바꾸기
-    const fromGroup = data.fromGroup || null;
+    // 자리 맞바꾸기 (한 번에 원자적으로 처리해야 서로 자리를 기다리다 멈추지 않아요)
+    const fromGroup = data.fromGroup || toZone;
     const fromSeat = findSeatOf(groups, fromGroup, data.pid);
     const toSeat = findSeatOf(groups, toZone, ontoPid);
-    if (toSeat){
-      await adminMovePlayer(selectedGameId, ontoPid, toZone, fromGroup || toZone, fromSeat || toSeat);
-    }
-    if (fromSeat || toSeat){
-      await adminMovePlayer(selectedGameId, data.pid, fromGroup, toZone, toSeat || fromSeat);
-    }
+    if (!fromSeat || !toSeat){ showToast('자리를 찾지 못했어요'); return; }
+    await swapPlayers(selectedGameId, data.pid, fromGroup, fromSeat, ontoPid, toZone, toSeat);
     showToast('순서를 바꿨어요');
     return;
   }
