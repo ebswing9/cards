@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>국어누리게임</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="styles.css">
 <style>
   body{ user-select:none; margin:0; }
@@ -448,8 +451,7 @@ function renderGameScreen(g, gi, grp){
             if (grp.judgeId === pid) badges.push('<span class="badge judge">판정자</span>');
             const cls = [
               pid===myId ? 'me' : '',
-              grp.currentPlayerId === pid ? 'active-turn' : '',
-              grp.judgeId === pid ? 'judge-turn' : ''
+              grp.currentPlayerId === pid ? 'active-turn' : ''
             ].join(' ');
             return `<div class="seat-chip ${cls}">
               <div class="nm">${escapeHtml(p?.name||'?')}</div>
@@ -471,15 +473,11 @@ function renderGameScreen(g, gi, grp){
 
         <div class="hand-section-title"><span class="pill-label score-pill">⭐ 점수 카드</span></div>
         <div class="hand-row">
-          ${SCORE_TYPES.map(t => `
-            <div class="hand-chip score clickable" onclick="showSolvedModal('${t}')"><div class="ico">${cardIcon(t,26)}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
-          `).join('')}
+          ${SCORE_TYPES.map(t => handChipHtml(t, myHand[t]||0, true)).join('')}
         </div>
         <div class="hand-section-title"><span class="pill-label">🎒 특수 카드</span></div>
         <div class="hand-row">
-          ${HAND_TYPES.map(t => `
-            <div class="hand-chip"><div class="ico">${cardIcon(t,26)}</div><div class="n">${myHand[t]||0}</div><div class="lb">${CARD_LABELS[t]}</div></div>
-          `).join('')}
+          ${HAND_TYPES.map(t => handChipHtml(t, myHand[t]||0, false)).join('')}
         </div>
 
         ${renderActionArea(g, gi, grp, myId, isMyTurn, isJudge)}
@@ -488,6 +486,15 @@ function renderGameScreen(g, gi, grp){
       ${renderDefenseModal(g, gi, grp, myId)}
     </div>
   `;
+}
+
+function handChipHtml(t, n, isScore){
+  const click = isScore ? ` onclick="showSolvedModal('${t}')"` : '';
+  return `<div class="hand-chip t-${t} ${isScore?'score clickable':''} ${n>0?'':'zero'}"${click}>
+    <div class="n">${n}</div>
+    <div class="ico">${cardIcon(t,30)}</div>
+    <div class="lb">${CARD_LABELS[t]}</div>
+  </div>`;
 }
 
 function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
@@ -507,9 +514,9 @@ function renderCenter(g, gi, grp, myId, isMyTurn, isJudge, showReveal){
     const key = card.questionId + card.type + grp.turnNumber;
     const anim = (key !== lastCardKey) ? 'flip-in' : '';
     lastCardKey = key;
-    return `<div class="center-card type-${card.type} ${anim}">
-      <span class="type-tag" style="background:${CARD_COLORS[card.type]}">${cardIcon(card.type)} ${CARD_LABELS[card.type]}</span>
-      <div class="qtext">${escapeHtml(card.text)}</div>
+    return `<div class="center-card is-question t-${card.type} ${anim}">
+      <span class="type-tag">${cardIcon(card.type,20)} ${CARD_LABELS[card.type]}</span>
+      <div class="qpaper"><span class="qbadge">Q</span><div class="qtext">${escapeHtml(card.text)}</div></div>
     </div>`;
   }
   if (grp.phase === 'steal_pick'){

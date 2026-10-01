@@ -432,6 +432,7 @@ function resolveJudge(gameId, g){
       group.hands[playerId][card.type] += 1;
       pushLog(group, '{name}님이 정답을 맞혀 카드를 획득했어요', playerId);
       pushSolved(group, playerId, card.text, card.type);
+      recordQuestionStat(group, card, 'correct');
       if (card.type === 'steal'){
         const order = computeOrder(group.seats, group.excludedIds);
         const targets = order.filter(id => id !== playerId && handTotal(group.hands[id]) > 0);
@@ -452,11 +453,13 @@ function resolveJudge(gameId, g){
       group.deck.unshift(card);
       group.currentCard = null;
       group.pendingJudge = null;
+      recordQuestionStat(group, card, 'incorrect');
       pushLog(group, '{name}님이 오답, 카드는 덱 맨 아래로 돌아갔어요', playerId);
       group = applyEndTurn(group);
     } else {
       group.currentCard = null;
       group.pendingJudge = null;
+      recordQuestionStat(group, card, 'unknown');
       pushLog(group, '{name}님의 문제, 모두 몰라서 카드가 제외됐어요', playerId);
       group = applyEndTurn(group);
     }

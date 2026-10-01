@@ -28,26 +28,26 @@ const HAND_TYPES = ['pass', 'jump', 'turn', 'defense'];
 const SCORE_TYPES = ['general', 'steal'];
 const ALL_CARD_TYPES = ['general', 'steal', 'pass', 'jump', 'turn', 'defense'];
 
-// 카드 종류별 배경 그라데이션 - 전부 한 톤(파란 계열) 안에서 명도로만 구분해요
+// 카드 종류별 배경 그라데이션 (styles.css 의 .t-종류 클래스와 같은 색이에요)
 const CARD_COLORS = {
-  general: 'linear-gradient(155deg,#F7FBFC,#B9D7EA)',
-  steal:   'linear-gradient(155deg,#B9D7EA,#769FCD)',
-  silence: 'linear-gradient(155deg,#E8EEF2,#C7D3DC)',
-  pass:    'linear-gradient(155deg,#D6E6F2,#A9C9DC)',
-  jump:    'linear-gradient(155deg,#D6E6F2,#9DBEDC)',
-  turn:    'linear-gradient(155deg,#C9D4EC,#9AA9D4)',
-  defense: 'linear-gradient(155deg,#B9D7EA,#769FCD)'
+  general: 'linear-gradient(155deg,#F4FAFF,#B5D6F2)',
+  steal: 'linear-gradient(155deg,#FFE3EA,#F7A8BB)',
+  silence: 'linear-gradient(155deg,#F0F2F5,#CBD3DC)',
+  pass: 'linear-gradient(155deg,#DDF6EC,#9ADBC0)',
+  jump: 'linear-gradient(155deg,#E3EBFF,#A9BDF5)',
+  turn: 'linear-gradient(155deg,#EDE6FF,#C2AEF2)',
+  defense: 'linear-gradient(155deg,#D9ECFF,#8DB9EE)'
 };
 
-// 카드 종류별 진한 포인트 색 (아이콘 등에 사용) - 같은 계열에서 채도/명도만 다르게
+// 카드 종류별 진한 포인트 색 (아이콘 등에 사용)
 const CARD_ACCENTS = {
-  general: '#4A72A8',
-  steal:   '#3C5A85',
-  silence: '#8295A6',
-  pass:    '#4A8FA8',
-  jump:    '#5A7FB0',
-  turn:    '#6A6FA8',
-  defense: '#4A72A8'
+  general: '#3F7BC0',
+  steal: '#C2456A',
+  silence: '#7A8794',
+  pass: '#2E9C78',
+  jump: '#4A68C9',
+  turn: '#7B5BD0',
+  defense: '#2F63A8'
 };
 
 // 카드 종류별 귀여운 SVG 아이콘 (currentColor로 색을 입혀요)
@@ -171,6 +171,17 @@ function pushLog(group, text, playerId){
   group.log = group.log || [];
   group.log.push({ ts: Date.now(), text, playerId: playerId || null });
   if (group.log.length > 20) group.log = group.log.slice(-20);
+}
+
+// 문제별 판정 기록 (게임 종료 후 관리자 화면에서 '모두 모름 / 오답 많은 문제' 모아보기에 써요)
+// kind: 'correct' | 'incorrect' | 'unknown'
+function recordQuestionStat(group, card, kind){
+  if (!card || !card.questionId) return;
+  group.qstats = group.qstats || {};
+  const s = group.qstats[card.questionId] || { text: card.text || '', correct: 0, incorrect: 0, unknown: 0 };
+  s.text = card.text || s.text || '';
+  s[kind] = (s[kind] || 0) + 1;
+  group.qstats[card.questionId] = s;
 }
 
 function pushSolved(group, playerId, questionText, cardType){

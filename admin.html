@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>국어누리게임 관리자</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -950,6 +953,53 @@ async function handleRestartGroup(gameId, gi){
   showToast('모둠을 다시 시작했어요');
 }
 
+let resultsTab = 'scores';
+function setResultsTab(t){ resultsTab = t; renderGameDetail(); }
+
+// kind: 'unknown'(모두 모름) | 'incorrect'(오답)
+function collectQuestionStats(g, kind){
+  const groups = g.groups || {};
+  const perGroup = {};
+  const total = {};
+  const byCount = (a, b) => b.count - a.count || String(a.text).localeCompare(String(b.text), 'ko');
+  Object.keys(groups).sort((a,b)=>a-b).forEach(gi => {
+    const qs = groups[gi].qstats || {};
+    const list = Object.entries(qs)
+      .map(([qid, s]) => ({ qid, text: s.text || '(문제 내용 없음)', count: s[kind] || 0 }))
+      .filter(r => r.count > 0)
+      .sort(byCount);
+    perGroup[gi] = list;
+    list.forEach(r => {
+      total[r.qid] = total[r.qid] || { qid: r.qid, text: r.text, count: 0 };
+      total[r.qid].count += r.count;
+    });
+  });
+  return { perGroup, totalList: Object.values(total).sort(byCount) };
+}
+
+function renderQuestionStatBlocks(g, kind){
+  const groups = g.groups || {};
+  const hasAny = Object.values(groups).some(grp => grp.qstats && Object.keys(grp.qstats).length > 0);
+  if (!hasAny){
+    return '<div class="empty-msg">문제별 기록이 없어요. 기록 기능이 추가되기 전에 진행한 게임이거나, 판정된 문제가 아직 없는 게임이에요.</div>';
+  }
+  const label = kind === 'unknown' ? '모두 모름' : '오답';
+  const { perGroup, totalList } = collectQuestionStats(g, kind);
+  const listHtml = list => list.length
+    ? `<ol class="qstat-list">${list.map(r => `<li><span class="qtxt">${escapeHtml(r.text)}</span><span class="qcount ${kind}">${r.count}회</span></li>`).join('')}</ol>`
+    : `<div class="hint">${label} 기록이 없어요 👏</div>`;
+
+  const totalBlock = `<div class="panel" style="margin-bottom:12px;">
+      <div style="font-weight:700; margin-bottom:6px;">전체 모둠 합산 <span class="hint">(${totalList.length}문제)</span></div>
+      ${listHtml(totalList)}
+    </div>`;
+  const groupBlocks = Object.keys(perGroup).map(gi => `<div class="panel" style="margin-bottom:12px;">
+      <div style="font-weight:700; margin-bottom:6px;">${gi}조 <span class="hint">(${perGroup[gi].length}문제)</span></div>
+      ${listHtml(perGroup[gi])}
+    </div>`).join('');
+  return totalBlock + groupBlocks;
+}
+
 function renderResultsDetail(g){
   const el = document.getElementById('gameDetail');
   const players = g.players || {};
@@ -978,13 +1028,42 @@ function renderResultsDetail(g){
     </div>`;
   }).join('');
 
+  let body;
+  if (resultsTab === 'unknown') body = renderQuestionStatBlocks(g, 'unknown');
+  else if (resultsTab === 'incorrect') body = renderQuestionStatBlocks(g, 'incorrect');
+  else body = groupBlocks || '<div class="empty-msg">모둠이 없어요.</div>';
+
+  const tabBtn = (key, text) => `<button class="btn btn-small ${resultsTab===key?'btn-primary':'btn-ghost'}" onclick="setResultsTab('${key}')">${text}</button>`;
+
   el.innerHTML = `
     <div class="detail-header">
       <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · 종료됨</div></div>
-      <button class="btn btn-ghost" onclick="downloadResultsCSV('${selectedGameId}')">결과 CSV 내려받기</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="downloadQuestionStatsCSV('${selectedGameId}')">문제 분석 CSV</button>
+        <button class="btn btn-ghost" onclick="downloadResultsCSV('${selectedGameId}')">결과 CSV 내려받기</button>
+      </div>
     </div>
-    ${groupBlocks || '<div class="empty-msg">모둠이 없어요.</div>'}
+    <div class="tab-row">
+      ${tabBtn('scores', '🏆 점수 결과')}
+      ${tabBtn('unknown', '🤷 모두 모름 문제')}
+      ${tabBtn('incorrect', '❌ 오답 많은 문제')}
+    </div>
+    ${body}
   `;
+}
+
+function downloadQuestionStatsCSV(gameId){
+  const g = games[gameId];
+  const groups = g.groups || {};
+  const rows = [['학급','모둠','문제','정답 횟수','오답 횟수','모두 모름 횟수']];
+  Object.keys(groups).sort((a,b)=>a-b).forEach(gi => {
+    const list = Object.values(groups[gi].qstats || {}).slice()
+      .sort((a,b) => ((b.unknown||0)-(a.unknown||0)) || ((b.incorrect||0)-(a.incorrect||0)));
+    list.forEach(s => rows.push([g.meta.className, gi, s.text||'', s.correct||0, s.incorrect||0, s.unknown||0]));
+  });
+  if (rows.length === 1){ showToast('내려받을 문제별 기록이 없어요'); return; }
+  const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+  downloadTextFile(`${g.meta.className}_문제분석.csv`, csv, true);
 }
 
 function downloadResultsCSV(gameId){
