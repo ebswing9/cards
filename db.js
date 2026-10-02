@@ -153,6 +153,19 @@ function setPlayerGroup(gameId, studentId, groupIndex){
   return playersRef(gameId).child(studentId).update({ groupIndex });
 }
 
+// 모둠을 잘못 골랐을 때 다시 고르기 (로비에서만 사용)
+function clearPlayerGroup(gameId, studentId){
+  return playersRef(gameId).child(studentId).update({ groupIndex: null });
+}
+// 자리를 비우고 다시 고르기
+function releaseSeat(gameId, g, playerId){
+  return groupRef(gameId, g).transaction(group => {
+    if (!group) return group;
+    Object.keys(group.seats || {}).forEach(k => { if (group.seats[k] === playerId) delete group.seats[k]; });
+    return group;
+  });
+}
+
 function setPlayerConnected(gameId, studentId, connected){
   return playersRef(gameId).child(studentId).update({ connected });
 }
@@ -442,6 +455,8 @@ function resolveJudge(gameId, g){
         group.currentCard = null;
         group.pendingJudge = null;
         if (targets.length === 0){
+          // 아무도 카드가 없어서 강탈할 수 없는 경우: 전원에게 알려줘요
+          group.lastEffect = { effect: 'steal', success: true, cardType: null, actorId: playerId, targetId: null, ts: serverNow() };
           group = applyEndTurn(group);
         } else {
           group.lastStealReveal = { playerId, ts: serverNow() }; // 전원에게 '사실은 강탈 카드였어요' 효과

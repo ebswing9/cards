@@ -1,8 +1,11 @@
-/* 쿠키런 (눈누 제공 웹폰트: 400 / 700 / 900)
+/* 더잠실체 (눈누 제공 웹폰트: 100 / 300 / 400 / 500 / 700 / 800)
    다른 폰트로 바꾸고 싶으면 아래 :root 의 --font-main 한 줄만 바꾸면 돼요. */
-@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/CookieRun-Regular.woff') format('woff'); font-weight:400; font-display:swap; }
-@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/CookieRunOTF-Bold00.woff') format('woff'); font-weight:700; font-display:swap; }
-@font-face{ font-family:'CookieRun'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/CookieRunOTF-Black00.woff') format('woff'); font-weight:900; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil1Thin.woff2') format('woff2'); font-weight:100; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil2Light.woff2') format('woff2'); font-weight:300; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil3Regular.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil4Medium.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil5Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+@font-face{ font-family:'TheJamsil'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil6ExtraBold.woff2') format('woff2'); font-weight:800; font-display:swap; }
 
 /* ======================================================
    국어누리게임 - 파스텔 디자인 시스템
@@ -47,7 +50,7 @@
   --radius:20px;
 
   /* 화면 전체에 쓰는 '귀여운' 글꼴 */
-  --font-main:'CookieRun','Pretendard', -apple-system, sans-serif;
+  --font-main:'TheJamsil','Pretendard', -apple-system, sans-serif;
 }
 *{box-sizing:border-box;}
 body{
@@ -555,3 +558,20 @@ button.btn.btn-small, .target-card span, .deck-hint, .toast, .confirm-banner, .s
 .slide-nav button:disabled{ opacity:0.3; cursor:default; }
 .stat-total{ transition:background 0.15s; }
 .stat-total:hover{ background:var(--primary-tint); }
+
+/* ---- 일부 요소는 더 얇은 굵기(Medium)로 ---- */
+body.admin .btn,
+.judge-row .btn, .judge-row button,
+.btn-light,
+.pick-btn.light,
+.game-notice{ font-weight:500; }
+.pick-btn.light{ font-size:15px; }
+
+/* ---- 작은 뒤로가기 버튼 ---- */
+.card-box .back-row{ text-align:left; margin:-6px 0 8px; }
+.back-btn{
+  display:inline-flex; align-items:center; gap:4px; background:#fff; border:1.5px solid var(--line); border-radius:999px;
+  padding:3px 12px; font-size:12px; font-weight:700; color:var(--ink-soft); cursor:pointer;
+  font-family:'Pretendard', -apple-system, sans-serif;
+}
+.back-btn:hover{ background:var(--primary-tint); color:var(--primary-dark); border-color:var(--primary-pale); }

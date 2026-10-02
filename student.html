@@ -115,7 +115,7 @@ function renderNameScreen(){
     const players = snap.val() || {};
     grid.innerHTML = students.map(([sid,s]) => {
       const taken = players[sid] && players[sid].connected;
-      return `<button class="pick-btn" ${taken?'disabled':''} onclick="startPinFlow('${sid}')">
+      return `<button class="pick-btn light" ${taken?'disabled':''} onclick="startPinFlow('${sid}')">
         ${escapeHtml(s.number)}번<br>${escapeHtml(s.name)}
       </button>`;
     }).join('');
@@ -355,6 +355,7 @@ function renderSeatPick(g, gi, grp){
   app.innerHTML = `
     <div class="center-screen">
       <div class="card-box" style="max-width:480px;">
+        <div class="back-row"><button class="back-btn" onclick="backToGroupPick()">← 모둠 다시 선택</button></div>
         <h2>자리를 골라주세요</h2>
         <p>가위바위보 승자가 1번, 이후 시계 방향으로 골라요</p>
         <div class="seat-grid">
@@ -372,6 +373,13 @@ function renderSeatPick(g, gi, grp){
   `;
 }
 
+async function backToGroupPick(){
+  await clearPlayerGroup(session.gameId, session.studentId);
+}
+async function backToSeatPick(){
+  await releaseSeat(session.gameId, curGi(), session.studentId);
+}
+
 async function pickSeatUI(gi, seat){
   const res = await pickSeat(session.gameId, gi, seat, session.studentId);
   if (!res.committed) showToast('이미 선택된 자리예요');
@@ -384,6 +392,7 @@ function renderWaitingRoom(g, gi, grp){
   app.innerHTML = `
     <div class="center-screen">
       <div class="card-box" style="max-width:480px;">
+        <div class="back-row"><button class="back-btn" onclick="backToSeatPick()">← 자리 다시 고르기</button></div>
         <h2>🎴 시작을 기다리는 중</h2>
         <p>${gi}조</p>
         <div class="seat-ring">
@@ -680,7 +689,7 @@ function renderEffectReveal(eff, g, myId){
   if (eff.effect === 'steal'){
     if (eff.success){
       const t = eff.cardType;
-      if (!t){ iconType = 'steal'; label = '빼앗을 카드가 없었어요'; }
+      if (!t){ iconType = 'steal'; label = '아무도 카드가 없어서<br>강탈하지 못했습니다.'; }
       else if (isActor){ iconType = t; label = `${nm(eff.targetId)}님에게서<br>${CARD_LABELS[t]}를 강탈했습니다!`; }
       else if (isTarget){ iconType = t; label = `${CARD_LABELS[t]}를<br>빼앗겼습니다...`; }
       else { iconType = 'steal'; label = `${nm(eff.actorId)}님이 ${nm(eff.targetId)}님에게서<br>카드 1장을 강탈했습니다`; }
@@ -856,7 +865,7 @@ function renderResults(g, gi, grp){
             ${shown.map(r => `<tr class="${r.rank===1?'rank-1':''}"><td>${r.rank}${r.rank===1?' 🏆':''}</td><td>${escapeHtml(r.name)}${r.pid===session.studentId?' (나)':''}</td><td>${r.score}</td></tr>`).join('')}
           </tbody>
         </table>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="findNextGame()">다음 게임 입장하기</button>
+        <button class="btn btn-primary btn-light" style="margin-top:16px;" onclick="findNextGame()">다음 게임 입장하기</button>
         ${logoutLinkHtml()}
       </div>
     </div>

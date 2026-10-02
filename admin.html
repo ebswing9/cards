@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="admin">
 
 <div class="pin-gate-overlay" id="pinGate">
   <div class="card-box" style="max-width:360px;">
@@ -630,16 +630,17 @@ function renderCreateForm(){
         <thead><tr><th style="width:40px"></th><th>카드</th><th style="width:140px">문제 수 대비 비율(%)</th></tr></thead>
         <tbody>
           ${CARD_CONFIG_ORDER.map(type => {
-            const d = DEFAULT_CARD_CONFIG[type];
+            const saved = loadSavedCardConfig();
+            const d = (saved && saved[type]) ? saved[type] : DEFAULT_CARD_CONFIG[type];
             return `<tr>
-              <td><input type="checkbox" id="cfg_${type}_on" checked></td>
+              <td><input type="checkbox" id="cfg_${type}_on" ${d.enabled === false ? '' : 'checked'}></td>
               <td>${cardIcon(type)} ${CARD_LABELS[type]}</td>
               <td><input type="number" id="cfg_${type}_ratio" value="${Math.round(d.ratio*100)}" style="width:70px;"> %</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
-      <div class="hint">특수 카드는 (사용하는 문제 수 × 비율)만큼 덱에 섞여요. 최소 1장은 항상 들어가요.</div>
+      <div class="hint">특수 카드는 (사용하는 문제 수 × 비율)만큼 덱에 섞여요. 최소 1장은 항상 들어가요. 마지막으로 만든 게임의 설정이 자동으로 기억돼요. <button class="btn btn-ghost btn-small" onclick="resetCardConfigForm()">기본값으로</button></div>
     </div>
     <div class="section">
       <button class="btn btn-primary btn-big" onclick="submitCreateGame()">게임 만들기</button>
@@ -647,6 +648,22 @@ function renderCreateForm(){
   `;
   renderCreateFormClassOptions();
   renderCreateFormSetOptions();
+}
+
+// 지난번에 쓴 카드 비율을 이 브라우저에 기억해요
+const CARD_CONFIG_KEY = 'cardgame_last_card_config';
+function loadSavedCardConfig(){
+  try { return JSON.parse(localStorage.getItem(CARD_CONFIG_KEY) || 'null'); } catch (e) { return null; }
+}
+function saveCardConfig(cfg){
+  try { localStorage.setItem(CARD_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) {}
+}
+function resetCardConfigForm(){
+  CARD_CONFIG_ORDER.forEach(type => {
+    const d = DEFAULT_CARD_CONFIG[type];
+    document.getElementById(`cfg_${type}_on`).checked = d.enabled;
+    document.getElementById(`cfg_${type}_ratio`).value = Math.round(d.ratio * 100);
+  });
 }
 
 async function submitCreateGame(){
@@ -672,6 +689,8 @@ async function submitCreateGame(){
       ratio: Math.max(0, Number(document.getElementById(`cfg_${type}_ratio`).value) || 0) / 100
     };
   });
+
+  saveCardConfig(cardConfig);
 
   const gameId = await createGame({
     classId, className: classes[classId].name,
