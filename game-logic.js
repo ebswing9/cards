@@ -167,9 +167,12 @@ function judgeFor(order, currentId, direction){
 
 // text는 "{name}님이 ..." 형태로, playerId가 있으면 화면에서 이름으로 치환해요.
 // 카드 종류가 드러나면 안 되는 상황에서는 text에 종류를 넣지 않아야 해요.
+// 로그는 최근 20개만 보관해요. 그래서 '개수'가 아니라 번호(id)로 새 알림을 구분해요.
 function pushLog(group, text, playerId){
   group.log = group.log || [];
-  group.log.push({ ts: Date.now(), text, playerId: playerId || null });
+  group.logSeq = (group.logSeq || 0) + 1;
+  const now = (typeof serverNow === 'function') ? serverNow() : Date.now(); // 기기 시계 차이 방지
+  group.log.push({ id: group.logSeq, ts: now, text, playerId: playerId || null });
   if (group.log.length > 20) group.log = group.log.slice(-20);
 }
 
@@ -182,6 +185,15 @@ function recordQuestionStat(group, card, kind){
   s.text = card.text || s.text || '';
   s[kind] = (s[kind] || 0) + 1;
   group.qstats[card.questionId] = s;
+}
+
+// 플레이어별 통계 (강탈 성공 / 강탈당함 / 강탈 카드 정답)
+// 손패에는 일반·강탈 구분 없이 '점수 카드'로만 쌓고, 강탈 횟수는 여기에 따로 기록해요.
+function recordPlayerStat(group, playerId, key){
+  if (!playerId) return;
+  group.stats = group.stats || {};
+  const s = group.stats[playerId] = group.stats[playerId] || {};
+  s[key] = (s[key] || 0) + 1;
 }
 
 function pushSolved(group, playerId, questionText, cardType){

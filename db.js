@@ -285,7 +285,10 @@ function respondDefense(gameId, g, playerId, use){
 function resolveDefenseWindow(gameId, g){
   return groupRef(gameId, g).transaction(group => {
     if (!group || !group.defenseWindow) return group;
-    if (serverNow() < group.defenseWindow.deadline) return; // 아직 시간이 안 됨
+    // 대상자 전원이 응답했으면 시간이 남아도 바로 처리해요
+    const resp0 = group.defenseWindow.responses || {};
+    const allResponded = (group.defenseWindow.targetIds || []).every(id => resp0[id] !== undefined);
+    if (!allResponded && serverNow() < group.defenseWindow.deadline) return; // 아직 시간이 안 됨
     const dw = group.defenseWindow;
     const responses = dw.responses || {}; // Firebase 는 빈 객체를 저장하지 않아서 undefined 일 수 있어요
     const order = computeOrder(group.seats, group.excludedIds);
@@ -312,6 +315,8 @@ function resolveDefenseWindow(gameId, g){
           const actorHand = group.hands[dw.actorId] || emptyHand();
           actorHand[chosen] = (actorHand[chosen] || 0) + 1;
           group.hands[dw.actorId] = actorHand;
+          recordPlayerStat(group, dw.actorId, 'steals');
+          recordPlayerStat(group, targetId, 'stolen');
         }
         group.lastEffect = { effect: 'steal', success: true, cardType: chosen, actorId: dw.actorId, targetId, ts: serverNow() };
       }
@@ -445,7 +450,9 @@ function resolveJudge(gameId, g){
     if (result === 'correct'){
       group.hands = group.hands || {};
       group.hands[playerId] = group.hands[playerId] || emptyHand();
-      group.hands[playerId][card.type] += 1;
+      // 강탈 카드도 획득하면 '점수 카드'(일반)로 합쳐요. 강탈 횟수는 통계로 따로 남겨요.
+      group.hands[playerId][card.type === 'steal' ? 'general' : card.type] += 1;
+      if (card.type === 'steal') recordPlayerStat(group, playerId, 'stealSolved');
       pushLog(group, '{name}님이 정답을 맞혀 카드를 획득했어요', playerId);
       pushSolved(group, playerId, card.text, card.type);
       recordQuestionStat(group, card, 'correct');

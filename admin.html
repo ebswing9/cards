@@ -902,22 +902,25 @@ function toggleGroupExpand(gi){
   renderGameDetail();
 }
 
+function statOf(grp, pid, key){ return ((grp.stats || {})[pid] || {})[key] || 0; }
+
 function renderGroupExpanded(gi, grp, players, order){
   const hands = grp.hands || {};
   return `
     <div class="section" style="margin-top:14px;">
       <table>
-        <thead><tr><th>이름</th><th>점수(일반+강탈)</th><th>손패 총</th><th style="width:100px"></th></tr></thead>
+        <thead><tr><th>이름</th><th>점수</th><th>강탈 성공/당함</th><th>손패 총</th><th style="width:100px"></th></tr></thead>
         <tbody>
           ${order.map(pid => {
             const h = hands[pid] || emptyHand();
             return `<tr>
               <td>${escapeHtml(players[pid]?.name||'?')}</td>
               <td>${handScore(h)}</td>
+              <td>${statOf(grp,pid,'steals')} / ${statOf(grp,pid,'stolen')}</td>
               <td>${handTotal(h)}</td>
               <td><button class="btn btn-ghost btn-small" onclick="openAdjustPanel('${gi}','${pid}')">카드 조정</button></td>
             </tr>`;
-          }).join('') || '<tr><td colspan="4" class="empty-msg">참가자가 없어요</td></tr>'}
+          }).join('') || '<tr><td colspan="5" class="empty-msg">참가자가 없어요</td></tr>'}
         </tbody>
       </table>
       <div id="adjustPanel_${gi}"></div>
@@ -943,12 +946,12 @@ function renderGroupExpanded(gi, grp, players, order){
 function openAdjustPanel(gi, pid){
   const el = document.getElementById(`adjustPanel_${gi}`);
   if (!el) return;
-  const types = ['general','steal','pass','jump','turn','defense'];
+  const types = ['general','pass','jump','turn','defense'];
   el.innerHTML = `
     <div class="confirm-banner">
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         ${types.map(t => `
-          <span class="chip">${cardIcon(t)} ${CARD_LABELS[t]}
+          <span class="chip">${cardIcon(t)} ${t === 'general' ? '점수 카드' : CARD_LABELS[t]}
             <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',-1)">-</button>
             <button class="btn btn-ghost btn-small" onclick="adjustHandCard('${selectedGameId}','${gi}','${pid}','${t}',1)">+</button>
           </span>
@@ -1103,7 +1106,8 @@ function renderResultsDetail(g){
   const groupBlocks = Object.keys(groups).sort((a,b)=>a-b).map(gi => {
     const hands = groups[gi].hands || {};
     const rows = Object.entries(hands).map(([pid,h]) => ({
-      pid, name: players[pid]?.name || '?', score: handScore(h)
+      pid, name: players[pid]?.name || '?', score: handScore(h),
+      steals: statOf(groups[gi], pid, 'steals'), stolen: statOf(groups[gi], pid, 'stolen')
     })).sort((a,b) => b.score - a.score);
 
     let rank = 0, prevScore = null, shown = [];
@@ -1115,9 +1119,9 @@ function renderResultsDetail(g){
     return `<div class="panel" style="margin-bottom:10px;">
       <div style="font-weight:700; margin-bottom:8px;">${gi}조</div>
       <table class="results-table">
-        <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
+        <thead><tr><th>순위</th><th>이름</th><th>점수</th><th>강탈 성공</th><th>강탈당함</th></tr></thead>
         <tbody>
-          ${shown.map(r => `<tr class="${r.rank===1?'rank-1':''}"><td>${r.rank}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td></tr>`).join('') || '<tr><td colspan="3" class="empty-msg">참가자가 없어요</td></tr>'}
+          ${shown.map(r => `<tr class="${r.rank===1?'rank-1':''}"><td>${r.rank}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${r.steals}</td><td>${r.stolen}</td></tr>`).join('') || '<tr><td colspan="5" class="empty-msg">참가자가 없어요</td></tr>'}
         </tbody>
       </table>
     </div>`;
@@ -1165,16 +1169,17 @@ function downloadResultsCSV(gameId){
   const g = games[gameId];
   const players = g.players || {};
   const groups = g.groups || {};
-  const rows = [['학급','모둠','번호','이름','점수','순위']];
+  const rows = [['학급','모둠','번호','이름','점수','순위','강탈 카드 정답','강탈 성공','강탈당함']];
   Object.keys(groups).sort((a,b)=>a-b).forEach(gi => {
     const hands = groups[gi].hands || {};
     const list = Object.entries(hands).map(([pid,h]) => ({
-      pid, name: players[pid]?.name||'', number: players[pid]?.number||'', score: handScore(h)
+      pid, name: players[pid]?.name||'', number: players[pid]?.number||'', score: handScore(h),
+      stealSolved: statOf(groups[gi], pid, 'stealSolved'), steals: statOf(groups[gi], pid, 'steals'), stolen: statOf(groups[gi], pid, 'stolen')
     })).sort((a,b) => b.score-a.score);
     let rank=0, prevScore=null;
     list.forEach((r,i) => {
       if (r.score !== prevScore){ rank=i+1; prevScore=r.score; }
-      rows.push([g.meta.className, gi, r.number, r.name, r.score, rank]);
+      rows.push([g.meta.className, gi, r.number, r.name, r.score, rank, r.stealSolved, r.steals, r.stolen]);
     });
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
