@@ -386,9 +386,10 @@ textarea.bulk{width:100%; min-height:110px; resize:vertical;}
 /* ---- 게임 알림 (화면 중앙, 크게) ---- */
 .game-notice{
   position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.85);
-  background:#fff; color:var(--ink); padding:18px 30px; border-radius:22px; font-size:17px; font-weight:800; text-align:center;
+  background:#fff; color:var(--ink); padding:16px 26px; border-radius:22px; font-size:17px; font-weight:800; text-align:center;
   box-shadow:0 20px 50px rgba(74,114,168,0.4); border:2px solid var(--primary-tint);
-  opacity:0; z-index:90; pointer-events:none; transition:opacity 0.25s, transform 0.25s; max-width:88vw;
+  opacity:0; z-index:90; pointer-events:none; transition:opacity 0.25s, transform 0.25s;
+  width:max-content; max-width:min(90vw, 440px); line-height:1.5; word-break:keep-all; text-wrap:balance;
 }
 .game-notice.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
 
@@ -562,8 +563,8 @@ body.admin .btn,
 .pick-btn.light{ font-weight:500; }
 
 /* 판정 버튼 / 알림 메시지는 읽기 편한 Pretendard */
-.judge-row .btn, .judge-row button{ font-family:'Pretendard', -apple-system, sans-serif; font-weight:700; font-synthesis:weight style; }
-.game-notice{ font-family:'Pretendard', -apple-system, sans-serif; font-weight:600; font-synthesis:weight style; }
+.judge-row .btn, .judge-row button{ font-family:'Pretendard', -apple-system, sans-serif; font-weight:800; font-synthesis:weight style; }
+.game-notice{ font-family:'Pretendard', -apple-system, sans-serif; font-weight:800; font-synthesis:weight style; }
 .pick-btn.light{ font-size:15px; }
 
 /* ---- 작은 뒤로가기 버튼 ---- */
@@ -584,8 +585,20 @@ h2 .ui-icon{ color:var(--primary); margin-right:6px; }
 /* ---- 사용할 수 있는 특수카드: 발광 + 클릭해서 사용 ---- */
 .hand-chip.usable{ cursor:pointer; border-color:var(--cc-ac); animation:chipGlow 1.4s ease-in-out infinite; }
 .hand-chip.usable:hover{ transform:translateY(-4px); }
-.hand-chip.usable .lb{ font-weight:700; }
+.hand-chip .use-tag{
+  position:absolute; top:-9px; left:-7px; z-index:1; padding:2px 9px; border-radius:999px;
+  background:var(--cc-ac); color:#fff; font-size:10.5px; font-weight:800; border:2px solid #fff;
+  box-shadow:0 3px 8px rgba(0,0,0,0.18); font-family:'Pretendard', -apple-system, sans-serif;
+}
 @keyframes chipGlow{
   0%,100%{ box-shadow:0 0 0 2px var(--cc-line), 0 0 6px 1px var(--cc-line); }
   50%{ box-shadow:0 0 0 2px var(--cc-ac), 0 0 20px 6px var(--cc-line); }
 }
+
+/* ---- Pretendard 글씨는 눈에 더 잘 들어오게 굵게 ---- */
+.badge, .chip, .pill-label, .hand-chip .lb, .wait-pill, button.btn.btn-small, .direction-arrow,
+.qstat-list .qcount, .back-btn, .deck-hint{ font-weight:800; }
+.hint, .seat-chip .cnt, .logout-link, .list-item .sub, .code-card .label, table th, .toast,
+.confirm-banner, .pause-banner, .last-turn-banner, .solved-list .item{ font-weight:600; }
+table td{ font-weight:500; }
+.center-card .qtext, .qpaper .qtext{ font-weight:800; }
