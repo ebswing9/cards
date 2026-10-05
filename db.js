@@ -7,6 +7,9 @@ let serverTimeOffset = 0;
 db.ref('.info/serverTimeOffset').on('value', snap => { serverTimeOffset = snap.val() || 0; });
 function serverNow(){ return Date.now() + serverTimeOffset; }
 
+// 방어 확인창 마감 시각 (모둠 간 경쟁은 선생님이 대상 팀에게 물어보고 누르므로 10분)
+function defenseDeadline(group){ return serverNow() + (group.teamMode ? 10 * 60 * 1000 : DEFENSE_WINDOW_MS); }
+
 function groupRef(gameId, g){ return db.ref(`games/${gameId}/groups/${g}`); }
 function metaRef(gameId){ return db.ref(`games/${gameId}/meta`); }
 function playersRef(gameId){ return db.ref(`games/${gameId}/players`); }
@@ -27,7 +30,7 @@ async function findActiveGameForClass(classId){
   const all = snap.val() || {};
   let best = null;
   Object.entries(all).forEach(([id, g]) => {
-    if (g.meta && g.meta.status !== 'ended'){
+    if (g.meta && g.meta.status !== 'ended' && g.meta.mode !== 'team'){
       if (!best || (g.meta.createdAt || 0) > (best.meta.createdAt || 0)) best = { id, ...g };
     }
   });
@@ -40,14 +43,33 @@ async function createGame(params){
   // params: {classId, className, questionSetId, questionSetName, durationMinutes, groupCount, maxPerGroup, deckMode, cardConfig}
   const ref = db.ref('games').push();
   const groups = {};
-  for (let g = 1; g <= params.groupCount; g++){
-    groups[g] = {
-      seats: {},
-      phase: 'lobby',
-      hands: {},
-      log: [],
-      excludedIds: {}
+  const isTeam = params.mode === 'team';
+  const teams = {};
+  const teamPlayers = {};
+  if (isTeam){
+    // 학급 하나가 게임 한 판, 모둠(팀)이 플레이어예요. 팀은 t1, t2, ... 라는 ID로 자리에 미리 앉혀둬요.
+    const seats = {};
+    for (let i = 1; i <= params.teamCount; i++){
+      const id = 't' + i;
+      const name = (params.teamNames && params.teamNames[i - 1]) || (i + '모둠');
+      teams[id] = { name, color: TEAM_COLORS[(i - 1) % TEAM_COLORS.length], number: i };
+      teamPlayers[id] = { name, number: i, groupIndex: 1, connected: true, isTeam: true };
+      seats[i] = id;
+    }
+    groups[1] = {
+      seats, phase: 'lobby', hands: {}, log: [], excludedIds: {},
+      teamMode: true, challengeEnabled: !!params.challengeEnabled, turnTimerSec: params.turnTimerSec || 0
     };
+  } else {
+    for (let g = 1; g <= params.groupCount; g++){
+      groups[g] = {
+        seats: {},
+        phase: 'lobby',
+        hands: {},
+        log: [],
+        excludedIds: {}
+      };
+    }
   }
   await ref.set({
     meta: {
@@ -62,11 +84,16 @@ async function createGame(params){
       cardConfig: params.cardConfig,
       deckCap: params.deckCap || null,          // 비어 있으면 문제를 전부 사용
       judgeCancelSec: params.judgeCancelSec != null ? params.judgeCancelSec : 3,
+      mode: isTeam ? 'team' : 'individual',
+      teamCount: isTeam ? params.teamCount : null,
+      challengeEnabled: isTeam ? !!params.challengeEnabled : null,
+      turnTimerSec: isTeam ? (params.turnTimerSec || 0) : null,
+      teams: isTeam ? teams : null,
       status: 'lobby',
       createdAt: Date.now()
     },
     groups,
-    players: {}
+    players: isTeam ? teamPlayers : {}
   });
   return ref.key;
 }
@@ -109,7 +136,11 @@ async function startGame(gameId, allQuestions){
     const hands = {};
     order.forEach(pid => { hands[pid] = emptyHand(); });
     updates[`groups/${g}/hands`] = hands;
-    updates[`groups/${g}/turnStartedAt`] = Date.now();
+    updates[`groups/${g}/turnStartedAt`] = serverNow();
+    updates[`groups/${g}/turnsTaken`] = null;
+    updates[`groups/${g}/finalRound`] = null;
+    updates[`groups/${g}/challenge`] = null;
+    updates[`groups/${g}/undo`] = null;
     updates[`groups/${g}/log`] = [{ ts: Date.now(), text: '게임이 시작됐어요' }];
   });
 
@@ -265,7 +296,7 @@ function useSpecialCard(gameId, g, playerId, type){
     group.phase = 'awaiting_defense';
     group.defenseWindow = {
       effect: type, actorId: playerId, targetIds,
-      deadline: serverNow() + DEFENSE_WINDOW_MS, responses: {}
+      deadline: defenseDeadline(group), responses: {}
     };
     return group;
   });
@@ -419,10 +450,10 @@ function setAdminPin(pin){
 function proposeJudge(gameId, g, judgeId, result, cancelMs){
   return groupRef(gameId, g).transaction(group => {
     if (!group) return group;
-    if (group.phase !== 'awaiting_answer') return;
+    if (group.phase !== 'awaiting_answer' && group.phase !== 'challenge_answer') return;
     if (group.judgeId !== judgeId) return;
     if (!group.currentCard) return;
-    group.pendingJudge = { result, judgeId, deadline: serverNow() + (cancelMs != null ? cancelMs : JUDGE_CANCEL_MS) };
+    group.pendingJudge = { result, judgeId, prevPhase: group.phase, deadline: serverNow() + (cancelMs != null ? cancelMs : JUDGE_CANCEL_MS) };
     group.phase = 'judge_pending';
     return group;
   });
@@ -432,8 +463,8 @@ function cancelJudge(gameId, g, judgeId){
   return groupRef(gameId, g).transaction(group => {
     if (!group || !group.pendingJudge) return group;
     if (group.pendingJudge.judgeId !== judgeId) return;
+    group.phase = group.pendingJudge.prevPhase || 'awaiting_answer';
     group.pendingJudge = null;
-    group.phase = 'awaiting_answer';
     return group;
   });
 }
@@ -444,7 +475,9 @@ function resolveJudge(gameId, g){
     if (serverNow() < group.pendingJudge.deadline) return;
     const { result } = group.pendingJudge;
     const card = group.currentCard;
-    const playerId = group.currentPlayerId;
+    // 도전 중이면 점수를 받는 사람은 도전한 팀이에요
+    const ch = (group.challenge && group.challenge.challengerId) ? group.challenge : null;
+    const playerId = ch ? ch.challengerId : group.currentPlayerId;
     if (!card){ group.pendingJudge = null; group.phase = 'pre_turn'; return group; }
 
     if (result === 'correct'){
@@ -453,10 +486,10 @@ function resolveJudge(gameId, g){
       // 강탈 카드도 획득하면 '점수 카드'(일반)로 합쳐요. 강탈 횟수는 통계로 따로 남겨요.
       group.hands[playerId][card.type === 'steal' ? 'general' : card.type] += 1;
       if (card.type === 'steal') recordPlayerStat(group, playerId, 'stealSolved');
-      pushLog(group, '{name}님이 정답을 맞혀 카드를 획득했어요', playerId);
+      pushLog(group, ch ? '{name}님이 도전해서 정답을 맞혔어요' : '{name}님이 정답을 맞혀 카드를 획득했어요', playerId);
       pushSolved(group, playerId, card.text, card.type);
       recordQuestionStat(group, card, 'correct');
-      if (card.type === 'steal'){
+      if (card.type === 'steal' && !ch){ // 도전으로 맞힌 강탈 카드는 점수만 얻고 강탈 효과는 없어요
         const order = computeOrder(group.seats, group.excludedIds);
         const targets = order.filter(id => id !== playerId && handTotal(group.hands[id]) > 0);
         group.currentCard = null;
@@ -475,21 +508,83 @@ function resolveJudge(gameId, g){
         group = applyEndTurn(group);
       }
     } else if (result === 'incorrect'){
+      recordQuestionStat(group, card, 'incorrect');
+      group.pendingJudge = null;
+      // 모둠 간 경쟁 + 도전 규칙: 아직 도전하지 않은 팀이 있으면 도전할 팀을 고르게 해요
+      let remaining = [];
+      if (group.teamMode && group.challengeEnabled){
+        const tried = ch ? (group.challenge.tried || []) : [group.currentPlayerId];
+        const order = computeOrder(group.seats, group.excludedIds);
+        remaining = order.filter(id => tried.indexOf(id) === -1);
+        if (remaining.length > 0){
+          group.challenge = { tried, challengerId: null };
+          group.phase = 'challenge_pick';
+          pushLog(group, '{name}님이 오답! 도전할 모둠을 골라요', playerId);
+          return group;
+        }
+      }
       group.deck = group.deck || [];
       group.deck.unshift(card);
       group.currentCard = null;
-      group.pendingJudge = null;
-      recordQuestionStat(group, card, 'incorrect');
-      pushLog(group, '{name}님이 오답, 카드는 덱 맨 아래로 돌아갔어요', playerId);
+      group.challenge = null;
+      pushLog(group, ch ? '도전도 오답, 카드는 덱 맨 아래로 돌아갔어요' : '{name}님이 오답, 카드는 덱 맨 아래로 돌아갔어요', ch ? null : playerId);
       group = applyEndTurn(group);
     } else {
       group.currentCard = null;
       group.pendingJudge = null;
+      group.challenge = null;
       recordQuestionStat(group, card, 'unknown');
       pushLog(group, '{name}님의 문제, 모두 몰라서 카드가 제외됐어요', playerId);
       group = applyEndTurn(group);
     }
     return group;
+  });
+}
+
+// ---------- 모둠 간 경쟁: 도전 / 되돌리기 ----------
+
+// 오답 뒤에 도전할 팀을 정해요 (오프라인에서 가위바위보로 정한 팀)
+function startChallenge(gameId, g, teamId){
+  return groupRef(gameId, g).transaction(group => {
+    if (!group || group.phase !== 'challenge_pick' || !group.challenge) return;
+    const order = computeOrder(group.seats, group.excludedIds);
+    const tried = group.challenge.tried || [];
+    if (order.indexOf(teamId) === -1 || tried.indexOf(teamId) !== -1) return;
+    tried.push(teamId);
+    group.challenge = { tried, challengerId: teamId };
+    group.phase = 'challenge_answer';
+    pushLog(group, '{name}님이 도전해요!', teamId);
+    return group;
+  });
+}
+
+// 도전 없이 넘어가기: 카드는 덱 맨 아래로
+function skipChallenge(gameId, g){
+  return groupRef(gameId, g).transaction(group => {
+    if (!group || group.phase !== 'challenge_pick') return;
+    if (group.currentCard){
+      group.deck = group.deck || [];
+      group.deck.unshift(group.currentCard);
+    }
+    group.currentCard = null;
+    group.challenge = null;
+    pushLog(group, '도전 없이 넘어가요, 카드는 덱 맨 아래로 돌아갔어요');
+    return applyEndTurn(group);
+  });
+}
+
+// 직전 동작 되돌리기 (선생님이 누르기 직전의 상태를 한 번 저장해 둬요)
+function saveUndoSnapshot(gameId, g, groupObj){
+  const copy = JSON.parse(JSON.stringify(groupObj || {}));
+  delete copy.undo;
+  return groupRef(gameId, g).child('undo').set(copy);
+}
+function undoLast(gameId, g){
+  return groupRef(gameId, g).transaction(group => {
+    if (!group || !group.undo) return;
+    const snap = group.undo;
+    snap.undo = null;
+    return snap;
   });
 }
 
@@ -503,7 +598,7 @@ function chooseStealTarget(gameId, g, playerId, targetId){
     group.phase = 'awaiting_defense';
     group.defenseWindow = {
       effect: 'steal', actorId: playerId, targetIds: [targetId],
-      deadline: serverNow() + DEFENSE_WINDOW_MS, responses: {}
+      deadline: defenseDeadline(group), responses: {}
     };
     return group;
   });
@@ -515,6 +610,33 @@ function endGroupIfTimeUp(gameId, g, endAt){
     if (!group) return group;
     if (group.phase !== 'pre_turn') return;
     if (endAt == null || serverNow() < endAt) return;
+    if (group.teamMode){
+      if (group.finalRound && group.finalRound.active) return; // 마지막 한 바퀴 진행 중
+      const order = computeOrder(group.seats, group.excludedIds);
+      const taken = group.turnsTaken || {};
+      const max = Math.max(0, ...order.map(id => taken[id] || 0));
+      const n = order.length;
+      const dir = group.direction || 1;
+      const start = Math.max(0, order.indexOf(group.currentPlayerId));
+      const seq = [];
+      for (let i = 0; i < n; i++) seq.push(order[(((start + i * dir) % n) + n) % n]);
+      const need = seq.filter(id => (taken[id] || 0) < max); // 턴이 부족한 팀만
+      if (need.length === 0){
+        group.phase = 'ended';
+        pushLog(group, '시간이 끝나 게임을 종료해요');
+        return group;
+      }
+      if (need[0] !== group.currentPlayerId){
+        group.currentPlayerId = need[0];
+        group.judgeId = judgeFor(order, need[0], dir) || need[0];
+        group.turnFlags = { specialUsed: false, passUsed: false };
+        group.turnStartedAt = serverNow();
+      }
+      group.pendingSkip = false; group.pendingFlip = false;
+      group.finalRound = { active: true, queue: need.slice(1) };
+      pushLog(group, '시간이 끝났어요! 마지막 한 바퀴를 진행해요');
+      return group;
+    }
     group.phase = 'ended';
     pushLog(group, '시간이 끝나 게임을 종료해요');
     return group;
@@ -529,6 +651,7 @@ function forceNextTurn(gameId, g){
     group.currentCard = null;
     group.pendingJudge = null;
     group.defenseWindow = null;
+    group.challenge = null;
     group.phase = 'pre_turn';
     return applyEndTurn(group);
   });

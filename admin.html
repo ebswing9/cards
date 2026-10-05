@@ -547,6 +547,10 @@ db.ref('games').on('value', snap => {
   if (selectedGameId) renderGameDetail();
 });
 
+// 모둠 간 경쟁에서는 '1조' 대신 '팀 순위'처럼 보여줘요
+function gLabel(game, gi){ return (game && game.meta && game.meta.mode === 'team') ? '학급 전체' : gi + '조'; }
+function openBoard(gameId){ window.open('board.html?game=' + encodeURIComponent(gameId), '_blank'); }
+
 function statusLabel(status){
   return { lobby:'대기중', playing:'진행중', paused:'일시정지', ended:'종료' }[status] || status;
 }
@@ -559,7 +563,7 @@ function renderGameList(){
     const g = games[id].meta || {};
     const sel = id === selectedGameId ? 'selected' : '';
     return `<div class="list-item ${sel}" onclick="selectGame('${id}')">
-      <div><div class="name">${escapeHtml(g.className||'')}</div><div class="sub">${escapeHtml(g.questionSetName||'')} · ${statusLabel(g.status)}</div></div>
+      <div><div class="name">${escapeHtml(g.className||'')}</div><div class="sub">${escapeHtml(g.questionSetName||'')} · ${g.mode === 'team' ? '모둠 간 · ' : ''}${statusLabel(g.status)}</div></div>
       ${g.status === 'ended' ? `<button class="btn btn-danger btn-small" onclick="event.stopPropagation(); handleDeleteGame('${id}')">삭제</button>` : ''}
     </div>`;
   }).join('');
@@ -606,18 +610,29 @@ function renderCreateForm(){
   el.innerHTML = `
     <div class="detail-header"><div class="detail-title">새 게임 만들기</div></div>
     <div class="section">
+      <div class="section-title">게임 방식</div>
+      <div class="radio-row">
+        <label><input type="radio" name="gameMode" value="individual" checked onchange="onModeChange()"> 모둠 내 경쟁 (학생이 각자 기기로, 모둠 안에서 경쟁)</label>
+        <label><input type="radio" name="gameMode" value="team" onchange="onModeChange()"> 모둠 간 경쟁 (전자칠판 한 화면으로, 교사가 조작)</label>
+      </div>
+    </div>
+    <div class="section">
       <div class="section-title">기본 설정</div>
       <table>
         <tr><td style="width:140px">학급</td><td><select id="createClassSelect" style="width:100%;"></select></td></tr>
         <tr><td>문제 세트</td><td><select id="createSetSelect" style="width:100%;"></select></td></tr>
         <tr><td>게임 시간(분)</td><td><input type="number" id="createDuration" value="15" style="width:100px;"></td></tr>
-        <tr><td>모둠 수</td><td><input type="number" id="createGroupCount" value="4" style="width:100px;"></td></tr>
-        <tr><td>모둠별 최대 인원</td><td><input type="number" id="createMaxPerGroup" value="4" style="width:100px;"></td></tr>
+        <tr id="rowGroupCount"><td>모둠 수</td><td><input type="number" id="createGroupCount" value="4" style="width:100px;"></td></tr>
+        <tr id="rowTeamCount" style="display:none"><td>팀(모둠) 수</td><td><input type="number" id="createTeamCount" value="4" min="2" max="8" style="width:100px;"> <span class="hint">2~8팀</span></td></tr>
+        <tr id="rowTeamNames" style="display:none"><td>팀 이름</td><td><input type="text" id="createTeamNames" placeholder="쉼표로 구분 (비우면 1모둠, 2모둠, …)" style="width:100%;"></td></tr>
+        <tr id="rowChallenge" style="display:none"><td>도전 규칙</td><td><label><input type="checkbox" id="createChallenge" checked> 오답이면 다른 팀이 도전할 수 있어요</label> <span class="hint">도전할 팀은 선생님이 고르고, 도전 팀도 틀리면 또 다른 팀을 고를 수 있어요</span></td></tr>
+        <tr id="rowTurnTimer" style="display:none"><td>턴 타이머</td><td><select id="createTurnTimer"><option value="0">끔</option><option value="60">60초</option><option value="90">90초</option></select> <span class="hint">칠판에 경고만 보여줘요 (자동으로 넘어가지는 않아요)</span></td></tr>
+        <tr id="rowMaxPerGroup"><td>모둠별 최대 인원</td><td><input type="number" id="createMaxPerGroup" value="4" style="width:100px;"></td></tr>
         <tr><td>판정 취소 대기(초)</td><td><input type="number" id="createJudgeCancel" value="3" min="0" max="10" style="width:100px;"> <span class="hint">판정자가 버튼을 누른 뒤 취소할 수 있는 시간</span></td></tr>
         <tr><td>덱 상한(장)</td><td><input type="number" id="createDeckCap" min="0" placeholder="제한 없음" style="width:100px;"> <span class="hint">비워두면 문제를 전부 사용해요</span></td></tr>
       </table>
     </div>
-    <div class="section">
+    <div class="section" id="sectionDeckMode">
       <div class="section-title">덱 구성 방식</div>
       <div class="radio-row">
         <label><input type="radio" name="deckMode" value="random" checked> 모둠별 무작위</label>
@@ -650,6 +665,12 @@ function renderCreateForm(){
   renderCreateFormSetOptions();
 }
 
+function onModeChange(){
+  const team = document.querySelector('input[name=gameMode]:checked').value === 'team';
+  ['rowGroupCount','rowMaxPerGroup','sectionDeckMode'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = team ? 'none' : ''; });
+  ['rowTeamCount','rowTeamNames','rowChallenge','rowTurnTimer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = team ? '' : 'none'; });
+}
+
 // 지난번에 쓴 카드 비율을 이 브라우저에 기억해요
 const CARD_CONFIG_KEY = 'cardgame_last_card_config';
 function loadSavedCardConfig(){
@@ -675,9 +696,15 @@ async function submitCreateGame(){
   if (qCount === 0){ showToast('선택한 세트에 문제가 없어요'); return; }
 
   const durationMinutes = Number(document.getElementById('createDuration').value) || 15;
-  const groupCount = Number(document.getElementById('createGroupCount').value) || 1;
-  const maxPerGroup = Number(document.getElementById('createMaxPerGroup').value) || 4;
-  const deckMode = document.querySelector('input[name=deckMode]:checked').value;
+  const mode = document.querySelector('input[name=gameMode]:checked').value;
+  const isTeam = mode === 'team';
+  const teamCount = Math.max(2, Math.min(8, Number(document.getElementById('createTeamCount').value) || 4));
+  const teamNames = document.getElementById('createTeamNames').value.split(',').map(s => s.trim()).filter(Boolean);
+  const challengeEnabled = document.getElementById('createChallenge').checked;
+  const turnTimerSec = Number(document.getElementById('createTurnTimer').value) || 0;
+  const groupCount = isTeam ? 1 : (Number(document.getElementById('createGroupCount').value) || 1);
+  const maxPerGroup = isTeam ? teamCount : (Number(document.getElementById('createMaxPerGroup').value) || 4);
+  const deckMode = isTeam ? 'random' : document.querySelector('input[name=deckMode]:checked').value;
   const jc = document.getElementById('createJudgeCancel').value;
   const judgeCancelSec = jc === '' ? 3 : Math.max(0, Math.min(10, Number(jc) || 0));
   const deckCap = Number(document.getElementById('createDeckCap').value) || null;
@@ -695,7 +722,8 @@ async function submitCreateGame(){
   const gameId = await createGame({
     classId, className: classes[classId].name,
     questionSetId: setId, questionSetName: questionSets[setId].name,
-    durationMinutes, groupCount, maxPerGroup, deckMode, cardConfig, deckCap, judgeCancelSec
+    durationMinutes, groupCount, maxPerGroup, deckMode, cardConfig, deckCap, judgeCancelSec,
+    mode, teamCount, teamNames, challengeEnabled, turnTimerSec
   });
   showToast('게임을 만들었어요');
   creatingGame = false;
@@ -713,7 +741,31 @@ function renderGameDetail(){
   else renderMonitorDetail(g);
 }
 
+function renderTeamLobby(g){
+  const el = document.getElementById('gameDetail');
+  const teams = g.meta.teams || {};
+  const ids = Object.keys(teams).sort((a,b) => teams[a].number - teams[b].number);
+  el.innerHTML = `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · ${g.meta.durationMinutes}분 · 모둠 간 경쟁 · 대기중</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">참가 팀 (자리 순서 = 진행 순서)</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        ${ids.map(id => `<span class="chip" style="font-size:15px; padding:6px 16px; border:2px solid ${teams[id].color};">${teams[id].number}번 ${escapeHtml(teams[id].name)}</span>`).join('')}
+      </div>
+      <div class="hint" style="margin-top:10px;">도전 규칙 ${g.meta.challengeEnabled ? '켜짐' : '꺼짐'} · 턴 타이머 ${g.meta.turnTimerSec ? g.meta.turnTimerSec + '초' : '끔'} · 판정 취소 ${g.meta.judgeCancelSec != null ? g.meta.judgeCancelSec : 3}초</div>
+    </div>
+    <div class="section" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-big" onclick="openBoard('${selectedGameId}')">칠판 화면 열기</button>
+      <button class="btn btn-primary btn-big" onclick="handleStartGame('${selectedGameId}')">게임 시작</button>
+    </div>
+    <div class="hint">칠판 화면을 전자칠판에 띄우고, 선생님 PC에서 진행해요. 칠판 화면에서도 게임을 시작할 수 있어요.</div>
+  `;
+}
+
 function renderLobbyDetail(g){
+  if (g.meta.mode === 'team') return renderTeamLobby(g);
   const el = document.getElementById('gameDetail');
   const cls = classes[g.meta.classId];
   const players = g.players || {};
@@ -833,7 +885,8 @@ async function handleStartGame(gameId){
 
 const PHASE_LABELS = {
   lobby:'대기중', pre_turn:'턴 대기', awaiting_answer:'답변·판정 중', judge_pending:'판정 반영 대기',
-  steal_pick:'강탈 대상 선택 중', awaiting_defense:'방어 대기 중', ended:'모둠 종료'
+  steal_pick:'강탈 대상 선택 중', awaiting_defense:'방어 대기 중',
+  challenge_pick:'도전 팀 선택 중', challenge_answer:'도전 답변 중', ended:'모둠 종료'
 };
 
 function renderMonitorDetail(g){
@@ -844,6 +897,7 @@ function renderMonitorDetail(g){
     <div class="detail-header">
       <div><div class="detail-title">${escapeHtml(g.meta.className)}</div><div class="hint">${escapeHtml(g.meta.questionSetName)} · ${statusLabel(status)}</div></div>
       <div style="display:flex; gap:8px;">
+        ${g.meta.mode === 'team' ? `<button class="btn btn-primary" onclick="openBoard('${selectedGameId}')">칠판 화면 열기</button>` : ''}
         ${status === 'playing' ? `<button class="btn btn-amber" onclick="pauseGame('${selectedGameId}')">일시정지</button>` : ''}
         ${status === 'paused' ? `<button class="btn btn-primary" onclick="resumeGame('${selectedGameId}')">재개</button>` : ''}
         <button class="btn btn-danger" onclick="handleEndGame('${selectedGameId}')">게임 종료</button>
@@ -885,7 +939,7 @@ function renderGroupCards(g){
       <div class="panel" style="margin-bottom:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleGroupExpand('${gi}')">
           <div>
-            <strong>${gi}조</strong>
+            <strong>${gLabel(g, gi)}</strong>
             <span class="badge" style="margin-left:8px;">${PHASE_LABELS[grp.phase]||grp.phase}</span>
             ${stuck ? '<span class="badge" style="background:#FBEAE5;color:#B4472D; margin-left:6px;">진행 지연 의심</span>' : ''}
           </div>
@@ -1027,7 +1081,7 @@ function renderQuestionStatBlocks(g, kind){
     const open = !!openStatGroups[key];
     return `<div class="panel" style="margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleStatGroup('${key}')">
-        <div style="font-weight:700;">${gi}조 <span class="hint">(${perGroup[gi].length}문제)</span></div>
+        <div style="font-weight:700;">${gLabel(g, gi)} <span class="hint">(${perGroup[gi].length}문제)</span></div>
         <span class="hint">${open ? '▲ 접기' : '▼ 펼치기'}</span>
       </div>
       ${open ? `<div style="margin-top:8px;">${listHtml(perGroup[gi])}</div>` : ''}
@@ -1042,7 +1096,7 @@ function openStatSlides(kind){
   const g = games[selectedGameId];
   const { totalList } = collectQuestionStats(g, kind);
   if (!totalList.length){ showToast('기록이 없어요'); return; }
-  statSlide = { kind, items: totalList, i: 0, className: g.meta.className };
+  statSlide = { kind, items: totalList, i: 0, className: g.meta.className, game: g };
   document.addEventListener('keydown', statSlideKey);
   renderStatSlide();
 }
@@ -1053,7 +1107,7 @@ function renderStatSlide(){
   const { kind, items, i, className } = statSlide;
   const it = items[i];
   const title = kind === 'unknown' ? '🤷 모두 모름 문제' : '❌ 오답 많은 문제';
-  const groupsTxt = Object.entries(it.byGroup).sort((a,b) => b[1]-a[1]).map(([gi,n]) => `<span>${gi}조 ${n}회</span>`).join('');
+  const groupsTxt = Object.entries(it.byGroup).sort((a,b) => b[1]-a[1]).map(([gi,n]) => `<span>${gLabel(statSlide.game, gi)} ${n}회</span>`).join('');
   el.innerHTML = `
     <div class="slide-top">
       <div class="ttl">${escapeHtml(className)} · ${title}</div>
@@ -1117,7 +1171,7 @@ function renderResultsDetail(g){
     });
 
     return `<div class="panel" style="margin-bottom:10px;">
-      <div style="font-weight:700; margin-bottom:8px;">${gi}조</div>
+      <div style="font-weight:700; margin-bottom:8px;">${g.meta.mode === 'team' ? '최종 순위' : gi + '조'}</div>
       <table class="results-table">
         <thead><tr><th>순위</th><th>이름</th><th>점수</th><th>강탈 성공</th><th>강탈당함</th></tr></thead>
         <tbody>

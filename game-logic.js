@@ -79,6 +79,9 @@ const DEFAULT_CARD_CONFIG = {
   defense: { enabled: true, ratio: 0.06 }
 };
 
+// 모둠 간 경쟁 모드에서 팀을 구분하는 색
+const TEAM_COLORS = ['#4A72A8','#D2506B','#2E9C78','#D98E00','#7B5BD0','#2F9BB8','#C8643A','#5B6B7C'];
+
 const DEFENSE_WINDOW_MS = 8000;
 const JUDGE_CANCEL_MS = 3000; // 기본값 (게임 만들 때 관리자가 바꿀 수 있어요)
 
@@ -208,16 +211,41 @@ function pushSolved(group, playerId, questionText, cardType){
 function applyEndTurn(group){
   const order = computeOrder(group.seats, group.excludedIds);
   if (order.length === 0){ group.phase = 'ended'; return group; }
+  const now = (typeof serverNow === 'function') ? serverNow() : Date.now();
+
+  // 모둠 간 경쟁: 팀마다 몇 번 턴을 했는지 기록해요 (시간이 끝난 뒤 '마지막 한 바퀴'에 써요)
+  if (group.teamMode && group.currentPlayerId){
+    group.turnsTaken = group.turnsTaken || {};
+    group.turnsTaken[group.currentPlayerId] = (group.turnsTaken[group.currentPlayerId] || 0) + 1;
+  }
 
   let direction = group.direction || 1;
-  if (group.pendingFlip) direction = -direction;
+  let newCurrent, newJudge;
 
-  let newCurrent = group.judgeId;
-  if (!newCurrent || order.indexOf(newCurrent) === -1) newCurrent = order[0];
-  if (group.pendingSkip){
-    newCurrent = nextInLine(order, newCurrent, direction) || newCurrent;
+  if (group.teamMode && group.finalRound && group.finalRound.active){
+    // 시간이 끝난 뒤: 턴이 부족한 팀만 차례로 진행하고 끝내요
+    const q = (group.finalRound.queue || []).filter(id => order.indexOf(id) !== -1);
+    if (q.length === 0){
+      group.currentCard = null; group.pendingJudge = null; group.defenseWindow = null; group.stealTarget = null;
+      group.challenge = null; group.pendingSkip = false; group.pendingFlip = false;
+      group.finalRound = { active: true, queue: [] };
+      group.phase = 'ended';
+      pushLog(group, '마지막 한 바퀴가 끝났어요!');
+      return group;
+    }
+    newCurrent = q.shift();
+    group.finalRound = { active: true, queue: q };
+    group.pendingSkip = false; group.pendingFlip = false;
+    newJudge = judgeFor(order, newCurrent, direction) || newCurrent;
+  } else {
+    if (group.pendingFlip) direction = -direction;
+    newCurrent = group.judgeId;
+    if (!newCurrent || order.indexOf(newCurrent) === -1) newCurrent = order[0];
+    if (group.pendingSkip){
+      newCurrent = nextInLine(order, newCurrent, direction) || newCurrent;
+    }
+    newJudge = judgeFor(order, newCurrent, direction) || newCurrent;
   }
-  const newJudge = judgeFor(order, newCurrent, direction) || newCurrent;
 
   group.direction = direction;
   group.currentPlayerId = newCurrent;
@@ -226,11 +254,12 @@ function applyEndTurn(group){
   group.pendingJudge = null;
   group.defenseWindow = null;
   group.stealTarget = null;
+  group.challenge = null;
   group.pendingSkip = false;
   group.pendingFlip = false;
   group.turnFlags = { specialUsed: false, passUsed: false };
   group.turnNumber = (group.turnNumber || 0) + 1;
-  group.turnStartedAt = Date.now();
+  group.turnStartedAt = now;
   group.phase = (group.deck && group.deck.length > 0) ? 'pre_turn' : 'ended';
   return group;
 }

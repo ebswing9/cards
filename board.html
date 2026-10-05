@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국어누리게임 - 칠판 화면</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{ margin:0; user-select:none; }
+  kbd{ font-family:'Pretendard',sans-serif; font-size:0.55em; font-weight:800; background:rgba(255,255,255,0.28); border:1.5px solid rgba(255,255,255,0.55); border-radius:8px; padding:1px 8px; margin-left:8px; vertical-align:middle; }
+  .b-wrap{ min-height:100vh; display:flex; flex-direction:column; padding:12px 22px 14px; gap:12px; max-width:1900px; margin:0 auto; }
+
+  /* 상단 바 */
+  .b-top{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .b-title{ font-size:20px; color:var(--primary-dark); }
+  .b-clock{ font-size:44px; font-weight:900; color:var(--primary-dark); background:#fff; border-radius:999px; padding:0 30px; line-height:1.35; box-shadow:0 6px 18px rgba(118,159,205,0.22); font-variant-numeric:tabular-nums; }
+  .b-clock.warn{ color:#C93049; animation:warnPulse 1s ease-in-out infinite; }
+  @keyframes warnPulse{ 50%{ transform:scale(1.06); } }
+  .b-tools{ display:flex; gap:8px; }
+  .b-tools .btn{ padding:8px 16px; font-size:14px; }
+
+  /* 팀 카드 */
+  .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+  .b-team{ position:relative; background:#fff; border:4px solid var(--line); border-top:12px solid var(--tc); border-radius:26px; padding:10px 14px 14px; text-align:center; box-shadow:0 8px 22px rgba(118,159,205,0.18); transition:transform 0.2s; }
+  .b-team-name{ font-size:clamp(22px,1.8vw,32px); font-weight:900; color:var(--ink); }
+  .b-score{ font-size:clamp(54px,5vw,84px); font-weight:900; line-height:1.05; color:var(--tc); }
+  .b-score small{ font-size:0.32em; margin-left:4px; color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; }
+  .b-chips{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .b-team .hand-chip{ width:58px; padding:3px 3px 4px; border-radius:13px; }
+  .b-team .hand-chip .ico{ height:30px; margin-bottom:2px; }
+  .b-team .hand-chip .lb{ font-size:10px; }
+  .b-team .hand-chip .n{ min-width:22px; height:22px; font-size:12px; top:-8px; right:-8px; }
+  .b-team .hand-chip .use-tag{ font-size:10px; padding:1px 7px; }
+  .b-team.current{ border-color:#5B9BE0; animation:seatGlow 1.4s ease-in-out infinite; transform:translateY(-3px); }
+  .b-turn-tag{ position:absolute; top:-26px; left:50%; transform:translateX(-50%); background:#5B9BE0; color:#fff; font-family:'Pretendard',sans-serif; font-weight:800; font-size:14px; padding:2px 16px; border-radius:999px; border:3px solid #fff; white-space:nowrap; }
+  .b-team.pickable{ cursor:pointer; border-color:#E8465F; animation:pickPulse 1s ease-in-out infinite; }
+  .b-team.pickable:hover{ transform:translateY(-4px) scale(1.02); }
+  @keyframes pickPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,70,95,0.45); } 50%{ box-shadow:0 0 0 12px rgba(232,70,95,0); } }
+
+  /* 가운데 무대 */
+  .b-stage{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:14px 0; text-align:center; min-height:0; }
+  .b-stage .center-card.is-question{ width:min(1100px,92%); margin-top:34px; margin-bottom:6px; }
+  .b-stage .qpaper{ min-height:120px; }
+  .b-stage .qpaper .qtext{ font-size:clamp(30px,3.3vw,58px); line-height:1.5; }
+  .b-stage .center-card.is-question .type-tag{ font-size:clamp(16px,1.4vw,22px); }
+  .b-line{ font-size:clamp(26px,2.6vw,44px); font-weight:900; color:var(--ink); }
+  .b-line b{ font-weight:900; }
+  .b-sub{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:clamp(16px,1.3vw,22px); color:var(--ink-soft); }
+  .b-draw{ font-size:clamp(28px,2.6vw,44px); padding:14px 56px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
+  .b-draw:active{ transform:scale(0.96); }
+  body.board .deck-pile{ height:130px; width:140px; margin:0 auto; }
+  body.board .deck-pile .card-back{ width:88px; height:124px; }
+  .b-judge{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+  .b-judge button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(24px,2.2vw,36px); padding:16px 38px; border:none; border-radius:22px; color:#fff; cursor:pointer; min-width:210px; }
+  .b-judge .j-ok{ background:linear-gradient(155deg,#43D49A,#1FA971); box-shadow:0 8px 20px rgba(31,169,113,0.4); }
+  .b-judge .j-no{ background:linear-gradient(155deg,#FF8095,#E8465F); box-shadow:0 8px 20px rgba(232,70,95,0.4); }
+  .b-judge .j-unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); box-shadow:0 8px 20px rgba(110,129,150,0.35); }
+  .b-judge .j-pass{ background:#fff; color:#2E9C78; border:3px solid #2E9C78; min-width:0; }
+  .b-pending{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(22px,2vw,32px); background:#fff; border-radius:22px; padding:14px 30px; box-shadow:0 8px 22px rgba(118,159,205,0.22); display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .b-timer{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:4px 18px; border-radius:999px; background:#fff; color:var(--primary-dark); }
+  .b-timer.over{ background:#E8465F; color:#fff; animation:warnPulse 0.8s ease-in-out infinite; }
+  .b-banner{ display:flex; align-items:center; gap:16px; background:#fff; border:3px solid var(--primary-pale); border-radius:22px; padding:10px 26px; font-size:clamp(20px,1.9vw,30px); font-weight:900; box-shadow:0 8px 22px rgba(118,159,205,0.2); }
+  .b-banner .steal-reveal-card{ width:54px; height:72px; margin:0; border-width:3px; border-radius:12px; animation:none; }
+  .b-pickrow{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .b-pickrow button{ font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); background:#fff; color:var(--ink); cursor:pointer; }
+  .b-pickrow button:hover{ background:var(--primary-tint); }
+  .b-pickrow button.skip{ border-color:var(--ink-soft); color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; }
+  .b-def{ display:flex; flex-direction:column; gap:12px; align-items:center; }
+  .b-def-row{ display:flex; gap:14px; align-items:center; background:#fff; border-radius:20px; padding:10px 22px; font-size:clamp(20px,1.8vw,28px); font-weight:900; box-shadow:0 6px 16px rgba(118,159,205,0.18); }
+  .b-def-row button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:8px 22px; border-radius:14px; border:none; cursor:pointer; color:#fff; }
+  .b-def-row .d-yes{ background:#2F63A8; } .b-def-row .d-no{ background:#8196AA; }
+  .b-def-done{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:18px; color:var(--ink-soft); }
+
+  /* 하단 */
+  .b-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+  .b-log{ font-family:'Pretendard',sans-serif; font-weight:600; font-size:15px; color:var(--ink-soft); line-height:1.6; min-height:60px; }
+  .b-log div:first-child{ color:var(--ink); font-weight:800; }
+  .b-keys{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:13px; color:var(--ink-soft); text-align:right; line-height:1.7; }
+  .b-keys b{ background:#fff; border:1.5px solid var(--line); border-radius:7px; padding:0 7px; margin-right:3px; color:var(--primary-dark); }
+
+  /* 결과 */
+  .b-rank{ display:flex; flex-direction:column; gap:12px; width:min(900px,92%); }
+  .b-rank-row{ display:flex; align-items:center; gap:22px; background:#fff; border-radius:24px; padding:12px 30px; border-left:14px solid var(--tc); box-shadow:0 8px 20px rgba(118,159,205,0.2); }
+  .b-rank-row .rk{ font-size:clamp(34px,3.6vw,60px); font-weight:900; width:90px; color:var(--tc); }
+  .b-rank-row .nm{ flex:1; text-align:left; font-size:clamp(26px,2.6vw,44px); font-weight:900; }
+  .b-rank-row .sc{ font-size:clamp(34px,3.6vw,60px); font-weight:900; color:var(--tc); }
+  .b-rank-row .st{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:16px; color:var(--ink-soft); }
+  .b-rank-row.first{ background:linear-gradient(160deg,#fff,var(--gold-tint)); }
+</style>
+</head>
+<body class="board">
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="game-logic.js"></script>
+<script src="db.js"></script>
+<script>
+// ======================================================
+// 모둠 간 경쟁 - 칠판 화면 (교사 PC → 전자칠판)
+// 학급 하나가 게임 한 판이고, 모둠(팀)이 플레이어예요. 선생님이 전부 조작해요.
+// ======================================================
+const GI = 1;
+const gameId = new URLSearchParams(location.search).get('game');
+const app = document.getElementById('app');
+let game = null;
+let scheduled = {};
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function msgScreen(text){ return `<div class="center-screen"><div class="card-box"><h2>${esc(text)}</h2></div></div>`; }
+
+// ---------- 한국어 조사 ----------
+function hasBatchim(w){
+  const ch = String(w).trim().slice(-1); const c = ch.charCodeAt(0);
+  if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28 !== 0;
+  if (/[0-9]/.test(ch)) return '013678'.includes(ch);
+  return false;
+}
+const ga = w => w + (hasBatchim(w) ? '이' : '가');
+const scoreLabel = t => (t === 'general' || t === 'steal') ? '점수 카드' : CARD_LABELS[t];
+function reul(w){ return w + (hasBatchim(w) ? '을' : '를'); }
+
+// ---------- 데이터 접근 ----------
+const META = () => game.meta;
+const GRP = () => (game.groups || {})[GI] || {};
+const teamIds = () => computeOrder(GRP().seats, GRP().excludedIds);
+function tName(id){ const t = (META().teams || {})[id]; return t ? t.name : (((game.players || {})[id] || {}).name || '?'); }
+function tColor(id){ const t = (META().teams || {})[id]; return t ? t.color : '#4A72A8'; }
+const handOf = id => (GRP().hands || {})[id] || emptyHand();
+
+// ======================================================
+// 효과음 (파일 없이 브라우저에서 직접 만든 소리)
+// ======================================================
+let audioCtx = null;
+let muted = localStorage.getItem('board_muted') === '1';
+function ac(){
+  if (!audioCtx){ try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, at, dur, type, vol, slideTo){
+  const c = audioCtx; if (!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  const t0 = c.currentTime + at;
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, t0);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.14, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+const SFX = {
+  draw(){ tone(520, 0, 0.09, 'triangle'); tone(780, 0.08, 0.12, 'triangle'); },
+  special(){ [660, 880, 1175].forEach((f, i) => tone(f, i * 0.08, 0.16, 'triangle', 0.13)); },
+  pick(){ tone(640, 0, 0.07, 'square', 0.07); },
+  correct(){ [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.2, 'square', 0.09)); },
+  wrong(){ tone(240, 0, 0.28, 'sawtooth', 0.11, 150); tone(180, 0.2, 0.34, 'sawtooth', 0.11, 110); },
+  unknown(){ tone(330, 0, 0.16, 'sine', 0.13); tone(262, 0.16, 0.26, 'sine', 0.13); },
+  silence(){ tone(200, 0, 0.9, 'sine', 0.13, 70); },
+  steal(){ tone(260, 0, 0.55, 'sawtooth', 0.09, 980); tone(980, 0.55, 0.18, 'square', 0.09); tone(1320, 0.72, 0.25, 'square', 0.09); },
+  defense(){ tone(660, 0, 0.1, 'square', 0.1); tone(990, 0.1, 0.3, 'square', 0.1); },
+  jump(){ tone(400, 0, 0.1, 'triangle'); tone(600, 0.1, 0.1, 'triangle'); tone(900, 0.2, 0.18, 'triangle'); },
+  turn(){ tone(800, 0, 0.12, 'triangle'); tone(500, 0.12, 0.2, 'triangle'); },
+  tick(){ tone(1000, 0, 0.05, 'square', 0.06); },
+  over(){ tone(880, 0, 0.18, 'square', 0.1); tone(880, 0.28, 0.18, 'square', 0.1); },
+  end(){ [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.14, 0.26, 'square', 0.1)); }
+};
+function sfx(name){ if (muted) return; if (!ac()) return; if (SFX[name]) SFX[name](); }
+function toggleMute(){ muted = !muted; localStorage.setItem('board_muted', muted ? '1' : '0'); if (!muted) sfx('pick'); render(); }
+
+// ======================================================
+// 전체 화면 효과 (침묵 / 강탈 공개)
+// ======================================================
+const SILENCE_FX_SVG = '<svg viewBox="0 0 64 64" fill="none"><path d="M12 12h40a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H33l-11 10v-10H12a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6Z" fill="#E8EEF2" stroke="#5B6B7C" stroke-width="3" stroke-linejoin="round"/><circle cx="21" cy="27" r="3" fill="#5B6B7C"/><circle cx="32" cy="27" r="3" fill="#5B6B7C"/><circle cx="43" cy="27" r="3" fill="#5B6B7C"/><path d="M9 56 55 8" stroke="#fff" stroke-width="9" stroke-linecap="round"/><path d="M9 56 55 8" stroke="#E8465F" stroke-width="4.5" stroke-linecap="round"/></svg>';
+function playFx(kind, title, sub, ms){
+  document.querySelectorAll('.silence-fx').forEach(e => e.remove());
+  const el = document.createElement('div');
+  el.className = 'silence-fx fx-' + kind;
+  const art = kind === 'steal'
+    ? `<div class="sfx-card" style="background:${CARD_COLORS.steal};">${cardIcon('steal',72)}</div>`
+    : `<div class="sfx-icon">${SILENCE_FX_SVG}</div>`;
+  el.innerHTML = `${art}<div class="sfx-text">${title}</div><div class="sfx-sub">${sub}</div>`;
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 500); };
+  el.onclick = close;
+  document.body.appendChild(el);
+  setTimeout(close, ms || 3600);
+}
+
+// ======================================================
+// 상태 변화 감지 → 효과음 / 전체 화면 효과
+// ======================================================
+let seen = null;
+let tickKey = '', overKey = '';
+function detectEvents(){
+  const m = META(), g = GRP();
+  const cur = {
+    silence: (g.lastSilence || {}).ts || 0, steal: (g.lastStealReveal || {}).ts || 0,
+    draw: (g.lastDraw || {}).ts || 0, effect: (g.lastEffect || {}).ts || 0,
+    phase: g.phase, pjResult: (g.pendingJudge || {}).result || null, pjDeadline: (g.pendingJudge || {}).deadline || 0, status: m.status
+  };
+  if (!seen){ seen = cur; return; }
+  if (cur.silence && cur.silence !== seen.silence){
+    sfx('silence');
+    playFx('silence', '쉿… 침묵 카드!', `${esc(ga(tName(g.lastSilence.playerId)))} 침묵 카드를 뽑아서<br>이번 턴은 쉬어요`, 3600);
+  }
+  if (cur.steal && cur.steal !== seen.steal){
+    sfx('steal');
+    playFx('steal', '사실은 강탈 카드!', `${esc(tName(g.lastStealReveal.playerId))}의 문제는 강탈 카드였어요!<br>누구의 카드를 뺏을까요?`, 3600);
+  }
+  if (cur.draw && cur.draw !== seen.draw) sfx('special');
+  if (cur.effect && cur.effect !== seen.effect){
+    const e = g.lastEffect;
+    if (!e.success) sfx('defense'); else sfx(e.effect === 'steal' ? 'steal' : e.effect);
+  }
+  if (seen.phase === 'pre_turn' && cur.phase === 'awaiting_answer') sfx('draw');
+  if (cur.phase === 'judge_pending' && seen.phase !== 'judge_pending') sfx('pick');
+  if (seen.phase === 'judge_pending' && cur.phase !== 'judge_pending' && serverNow() >= seen.pjDeadline - 400){
+    sfx(seen.pjResult === 'correct' ? 'correct' : seen.pjResult === 'incorrect' ? 'wrong' : 'unknown');
+  }
+  if (cur.phase === 'ended' && seen.phase !== 'ended') sfx('end');
+  seen = cur;
+}
+function tickSounds(){
+  if (!game || !game.meta || game.meta.status !== 'playing') return;
+  const rem = clockMs();
+  if (rem > 0 && rem <= 10500){ const k = Math.ceil(rem / 1000); if (k !== tickKey){ tickKey = k; sfx('tick'); } }
+  const t = turnRemainingSec();
+  if (t != null && t <= 0){ const k = GRP().turnNumber; if (k !== overKey){ overKey = k; sfx('over'); } }
+}
+
+// ======================================================
+// 시간
+// ======================================================
+function clockMs(){
+  const m = META();
+  if (m.status === 'playing') return Math.max(0, (m.endAt || 0) - serverNow());
+  if (m.status === 'paused') return m.remainingMsAtPause || 0;
+  if (m.status === 'lobby') return (m.durationMinutes || 0) * 60000;
+  return 0;
+}
+function turnRemainingSec(){
+  const g = GRP(), sec = META().turnTimerSec;
+  if (!sec || META().status !== 'playing') return null;
+  if (['pre_turn', 'awaiting_answer', 'challenge_pick', 'challenge_answer'].indexOf(g.phase) === -1) return null;
+  return sec - Math.floor((serverNow() - (g.turnStartedAt || serverNow())) / 1000);
+}
+
+// ======================================================
+// 선생님 조작 (직전 상태를 저장한 뒤 실행 → 되돌리기 가능)
+// ======================================================
+async function act(fn){
+  const g = GRP();
+  try { await saveUndoSnapshot(gameId, GI, g); } catch (e) {}
+  try { return await fn(); } catch (e) { showToast('처리 중 문제가 생겼어요'); }
+}
+function doDraw(){ const g = GRP(); if (g.phase === 'pre_turn') act(() => drawCard(gameId, GI, g.currentPlayerId)); }
+function doJudge(result){
+  const g = GRP(), m = META();
+  if (g.phase !== 'awaiting_answer' && g.phase !== 'challenge_answer') return;
+  if (result === 'unknown' && g.phase !== 'awaiting_answer') return;
+  const sec = m.judgeCancelSec != null ? m.judgeCancelSec : 3;
+  act(() => proposeJudge(gameId, GI, g.judgeId, result, sec * 1000));
+}
+function doCancelJudge(){ const g = GRP(); if (g.phase === 'judge_pending' && g.pendingJudge) cancelJudge(gameId, GI, g.pendingJudge.judgeId); }
+function pickTeam(id){
+  const g = GRP();
+  if (g.phase === 'steal_pick') act(() => chooseStealTarget(gameId, GI, g.currentPlayerId, id));
+  else if (g.phase === 'challenge_pick') act(() => startChallenge(gameId, GI, id));
+}
+function doSkipChallenge(){ if (GRP().phase === 'challenge_pick') act(() => skipChallenge(gameId, GI)); }
+function doDefense(id, use){ respondDefense(gameId, GI, id, use); }
+function doUndo(){ if (GRP().undo) undoLast(gameId, GI); else showToast('되돌릴 동작이 없어요'); }
+function doPause(){ pauseGame(gameId); }
+function doResume(){ resumeGame(gameId); }
+async function doConfirmEnd(){ if (confirm('결과를 확정하고 게임을 마칠까요?')) await endGame(gameId); }
+async function startFromBoard(){
+  const m = META();
+  const snap = await db.ref('questionSets/' + m.questionSetId + '/questions').once('value');
+  const all = Object.entries(snap.val() || {}).map(([id, q]) => ({ id, text: q.text }));
+  if (all.length === 0){ showToast('문제가 없어서 시작할 수 없어요'); return; }
+  await startGame(gameId, all);
+}
+
+function cardHelpText(t){
+  return {
+    pass: '문제를 답하기 전에 쓰면 그 문제를 포기하고 새 카드를 뽑아요.',
+    jump: '카드를 뽑기 전에 쓰면 내 턴이 끝난 뒤 다음 팀은 쉬어요.',
+    turn: '카드를 뽑기 전에 쓰면 진행 방향이 반대로 바뀌어요.',
+    defense: '강탈·점프·전환 효과를 막을 수 있어요.'
+  }[t] || '';
+}
+function isUsable(id, t){
+  const g = GRP();
+  if (META().status !== 'playing' || g.currentPlayerId !== id) return false;
+  if ((handOf(id)[t] || 0) <= 0) return false;
+  const f = g.turnFlags || {};
+  if (t === 'jump' || t === 'turn') return g.phase === 'pre_turn' && !f.specialUsed;
+  if (t === 'pass') return g.phase === 'awaiting_answer' && !f.passUsed;
+  return false;
+}
+function askUse(type){
+  const g = GRP(), id = g.currentPlayerId;
+  if (!isUsable(id, type)) return;
+  document.querySelectorAll('.use-confirm').forEach(e => e.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay use-confirm';
+  overlay.innerHTML = `<div class="modal-box" style="max-width:420px;">
+    <div class="steal-reveal-card" style="background:${CARD_COLORS[type]}; width:72px; height:96px; margin:2px auto 12px;">${cardIcon(type,34)}</div>
+    <h2>${esc(tName(id))}의 ${CARD_LABELS[type]}를 쓸까요?</h2>
+    <p class="hint">${cardHelpText(type)}</p>
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">
+      <button class="btn btn-primary" id="useYes">사용하기</button>
+      <button class="btn btn-ghost" id="useNo">취소</button>
+    </div></div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  overlay.querySelector('#useNo').onclick = close;
+  overlay.querySelector('#useYes').onclick = () => {
+    close();
+    act(() => type === 'pass' ? usePassCard(gameId, GI, id) : useSpecialCard(gameId, GI, id, type));
+  };
+}
+
+// ======================================================
+// 예약 작업 (판정 확정 / 방어 처리 / 시간 종료)
+// ======================================================
+function sched(key, deadline, fn){
+  if (scheduled[key]) return;
+  scheduled[key] = setTimeout(() => { delete scheduled[key]; fn(); }, Math.max(0, deadline - serverNow()) + 150);
+}
+function scheduleWork(){
+  const m = META(), g = GRP();
+  if (m.status !== 'playing') return;
+  if (g.phase === 'judge_pending' && g.pendingJudge){
+    sched('j_' + g.pendingJudge.deadline, g.pendingJudge.deadline, () => resolveJudge(gameId, GI));
+  }
+  if (g.phase === 'awaiting_defense' && g.defenseWindow){
+    const dw = g.defenseWindow, resp = dw.responses || {}, ids = dw.targetIds || [];
+    // 방어 카드가 없는 팀은 자동으로 '사용 안 함'
+    ids.forEach(id => {
+      if (resp[id] === undefined && (handOf(id).defense || 0) <= 0) sched('ad_' + dw.deadline + '_' + id, 0, () => respondDefense(gameId, GI, id, false));
+    });
+    if (ids.length > 0 && ids.every(id => resp[id] !== undefined)) sched('dall_' + dw.deadline, 0, () => resolveDefenseWindow(gameId, GI));
+    else sched('dd_' + dw.deadline, dw.deadline, () => resolveDefenseWindow(gameId, GI));
+  }
+  if (g.phase === 'pre_turn' && m.endAt && serverNow() >= m.endAt){
+    sched('end_' + Math.floor(serverNow() / 3000), 0, () => endGroupIfTimeUp(gameId, GI, m.endAt));
+  }
+}
+
+// ======================================================
+// 화면 그리기
+// ======================================================
+function formatLog(e){
+  const name = esc(e.playerId ? tName(e.playerId) : '');
+  return esc(e.text || '')
+    .replace(/\{name\}님이/g, name ? ga(name) : '')
+    .replace(/\{name\}님의/g, name + '의')
+    .replace(/\{name\}님/g, name);
+}
+function effectText(e){
+  const A = esc(tName(e.actorId)), T = e.targetId ? esc(tName(e.targetId)) : '';
+  if (e.effect === 'steal'){
+    if (!e.success) return `${ga(T)} 방어 카드로 ${A}의 강탈을 막았어요!`;
+    if (!e.cardType) return '아무도 카드가 없어서 강탈하지 못했습니다.';
+    return `${ga(A)} ${T}에게서 ${reul(scoreLabel(e.cardType))} 강탈했습니다!`;
+  }
+  if (e.effect === 'jump') return e.success ? `${A}의 점프! 다음 팀은 한 턴 쉬어요` : `${ga(T)} 방어 카드로 점프를 막았어요!`;
+  if (e.effect === 'turn') return e.success ? '전환! 진행 방향이 반대로 바뀌어요' : `${ga(T)} 방어 카드로 전환을 막았어요!`;
+  return '';
+}
+function effectIcon(e){
+  if (!e.success) return 'defense';
+  if (e.effect === 'steal') return e.cardType || 'steal';
+  return e.effect;
+}
+function bannersHtml(){
+  const g = GRP(); let h = '';
+  if (g.lastDraw && serverNow() - g.lastDraw.ts < 6000){
+    const d = g.lastDraw, t = d.type;
+    h += `<div class="b-banner"><div class="steal-reveal-card" style="background:${CARD_COLORS[t]};">${cardIcon(t,30)}</div><div>${esc(ga(tName(d.playerId)))} ${esc(reul(CARD_LABELS[t]))} 뽑았어요!</div></div>`;
+  }
+  if (g.lastEffect && serverNow() - g.lastEffect.ts < (g.lastEffect.effect === 'steal' ? 6000 : 4500)){
+    const e = g.lastEffect, t = effectIcon(e);
+    h += `<div class="b-banner"><div class="steal-reveal-card" style="background:${CARD_COLORS[t]};">${cardIcon(t,30)}</div><div>${effectText(e)}</div></div>`;
+  }
+  return h;
+}
+function chipsHtml(id){
+  const hand = handOf(id);
+  return HAND_TYPES.map(t => {
+    const n = hand[t] || 0, usable = isUsable(id, t);
+    return `<div class="hand-chip t-${t} ${n ? '' : 'zero'} ${usable ? 'usable' : ''}" ${usable ? `onclick="event.stopPropagation(); askUse('${t}')"` : ''}>
+      <div class="n">${n}</div>${usable ? '<span class="use-tag">사용</span>' : ''}
+      <div class="ico">${cardIcon(t,22)}</div><div class="lb">${CARD_LABELS[t]}</div></div>`;
+  }).join('');
+}
+function pickableSet(){
+  const g = GRP(), s = {};
+  if (META().status !== 'playing') return s;
+  if (g.phase === 'steal_pick') teamIds().forEach(id => { if (id !== g.currentPlayerId && handTotal(handOf(id)) > 0) s[id] = true; });
+  if (g.phase === 'challenge_pick'){ const tried = (g.challenge || {}).tried || []; teamIds().forEach(id => { if (tried.indexOf(id) === -1) s[id] = true; }); }
+  return s;
+}
+function teamsHtml(){
+  const g = GRP(), pick = pickableSet();
+  const live = META().status === 'playing' || META().status === 'paused';
+  return `<div class="b-teams">${teamIds().map(id => {
+    const cur = live && g.phase !== 'ended' && g.currentPlayerId === id;
+    const sc = handScore(handOf(id));
+    return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${tColor(id)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
+      ${cur ? '<div class="b-turn-tag">지금 차례</div>' : ''}
+      <div class="b-team-name">${esc(tName(id))}</div>
+      <div class="b-score">${sc}<small>점</small></div>
+      <div class="b-chips">${chipsHtml(id)}</div></div>`;
+  }).join('')}</div>`;
+}
+function questionHtml(card){
+  // 칠판은 모두가 같이 보니까 강탈 카드도 정답이 나오기 전까지는 일반 카드처럼 보여요
+  return `<div class="center-card is-question t-general"><span class="type-tag">${cardIcon('general',22)} 일반 카드</span>
+    <div class="qpaper"><span class="qbadge">Q</span><div class="qtext">${esc(card.text)}</div></div></div>`;
+}
+function turnTimerHtml(){
+  const t = turnRemainingSec();
+  if (t == null) return '';
+  return t > 0 ? `<div class="b-timer">턴 남은 시간 ${t}초</div>` : '<div class="b-timer over">시간 초과!</div>';
+}
+function judgeButtons(withUnknown){
+  const g = GRP();
+  const pass = (g.phase === 'awaiting_answer' && isUsable(g.currentPlayerId, 'pass'))
+    ? `<button class="j-pass" onclick="askUse('pass')">패스 카드 사용</button>` : '';
+  return `<div class="b-judge">
+    <button class="j-ok" onclick="doJudge('correct')">정답<kbd>1</kbd></button>
+    <button class="j-no" onclick="doJudge('incorrect')">오답<kbd>2</kbd></button>
+    ${withUnknown ? `<button class="j-unk" onclick="doJudge('unknown')">모두 모름<kbd>3</kbd></button>` : ''}
+    ${pass}</div>`;
+}
+function stageHtml(){
+  const m = META(), g = GRP(), cur = g.currentPlayerId;
+  const ban = bannersHtml();
+  const finalNote = (g.finalRound && g.finalRound.active) ? '<div class="b-sub">마지막 한 바퀴예요! 턴이 부족한 팀만 진행해요</div>' : '';
+  if (g.phase === 'pre_turn'){
+    const jt = isUsable(cur, 'jump') || isUsable(cur, 'turn');
+    return `${ban}${finalNote}
+      <div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 차례!</div>${turnTimerHtml()}
+      <div class="deck-pile" onclick="doDraw()" style="cursor:pointer"><div class="card-back"></div><div class="card-back"></div><div class="card-back"></div></div>
+      <button class="b-draw" onclick="doDraw()">카드 뽑기<kbd>Space</kbd></button>
+      ${jt ? '<div class="b-sub">반짝이는 카드를 누르면 점프·전환을 쓸 수 있어요 (카드를 뽑기 전에만!)</div>' : ''}`;
+  }
+  if (g.phase === 'awaiting_answer' && g.currentCard){
+    return `${ban}<div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 문제</div>${turnTimerHtml()}
+      ${questionHtml(g.currentCard)}${judgeButtons(true)}`;
+  }
+  if (g.phase === 'judge_pending' && g.pendingJudge){
+    const r = g.pendingJudge.result, sec = Math.max(0, Math.ceil((g.pendingJudge.deadline - serverNow()) / 1000));
+    const label = r === 'correct' ? '정답' : r === 'incorrect' ? '오답' : '모두 모름';
+    const who = (g.challenge && g.challenge.challengerId) ? g.challenge.challengerId : cur;
+    return `<div class="b-line"><span style="color:${tColor(who)}">${esc(tName(who))}</span></div>${g.currentCard ? questionHtml(g.currentCard) : ''}
+      <div class="b-pending"><span>판정: ${label} · ${sec}초 뒤 확정</span><button class="btn btn-ghost" onclick="doCancelJudge()">취소<kbd style="background:#EAF2F8;color:var(--primary-dark);border-color:var(--primary-pale)">Esc</kbd></button></div>`;
+  }
+  if (g.phase === 'challenge_pick'){
+    const tried = (g.challenge || {}).tried || [];
+    const left = teamIds().filter(id => tried.indexOf(id) === -1);
+    return `${ban}<div class="b-line">${esc(tried.length > 1 ? '또 오답!' : ga(tName(cur)) + ' 오답!')} 도전할 모둠을 정해요</div>
+      <div class="b-sub">가위바위보로 도전 팀을 정한 뒤 눌러주세요</div>
+      ${g.currentCard ? questionHtml(g.currentCard) : ''}
+      <div class="b-pickrow">${left.map(id => `<button style="--tc:${tColor(id)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`).join('')}
+        <button class="skip" onclick="doSkipChallenge()">도전 없이 넘어가기</button></div>`;
+  }
+  if (g.phase === 'challenge_answer' && g.currentCard){
+    const ch = (g.challenge || {}).challengerId;
+    return `${ban}<div class="b-line"><span style="color:${tColor(ch)}">${esc(tName(ch))}</span>의 도전!</div>
+      ${questionHtml(g.currentCard)}${judgeButtons(false)}`;
+  }
+  if (g.phase === 'steal_pick'){
+    const targets = teamIds().filter(id => id !== cur && handTotal(handOf(id)) > 0);
+    return `${ban}<div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 강탈!</div>
+      <div class="b-sub">카드를 뺏을 팀을 눌러주세요 (위쪽 팀 카드를 눌러도 돼요)</div>
+      <div class="b-pickrow">${targets.map(id => `<button style="--tc:${tColor(id)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`).join('')}</div>`;
+  }
+  if (g.phase === 'awaiting_defense' && g.defenseWindow){
+    const dw = g.defenseWindow, resp = dw.responses || {};
+    const what = { steal: '강탈', jump: '점프', turn: '전환' }[dw.effect] || dw.effect;
+    const rows = (dw.targetIds || []).map(id => {
+      const has = (handOf(id).defense || 0) > 0;
+      let right;
+      if (resp[id] !== undefined) right = `<span class="b-def-done">${resp[id] ? '방어 카드 사용!' : '사용 안 함'}</span>`;
+      else if (!has) right = '<span class="b-def-done">방어 카드 없음</span>';
+      else right = `<button class="d-yes" onclick="doDefense('${id}', true)">방어 카드 사용</button><button class="d-no" onclick="doDefense('${id}', false)">사용 안 함</button>`;
+      return `<div class="b-def-row"><span style="color:${tColor(id)}">${esc(tName(id))}</span>${right}</div>`;
+    }).join('');
+    return `${ban}<div class="b-line">${esc(ga(tName(dw.actorId)))} ${what} 카드를 썼어요!</div>
+      <div class="b-sub">방어 카드가 있는 팀에게 물어보고 눌러주세요</div><div class="b-def">${rows}</div>`;
+  }
+  return ban;
+}
+function rankingHtml(){
+  const g = GRP();
+  const rows = teamIds().map(id => ({ id, score: handScore(handOf(id)), st: (g.stats || {})[id] || {} }))
+    .sort((a, b) => b.score - a.score);
+  let rank = 0, prev = null;
+  return `<div class="b-rank">${rows.map((r, i) => {
+    if (r.score !== prev){ rank = i + 1; prev = r.score; }
+    return `<div class="b-rank-row ${rank === 1 ? 'first' : ''}" style="--tc:${tColor(r.id)}">
+      <div class="rk">${rank}위</div><div class="nm">${esc(tName(r.id))}<div class="st">강탈 성공 ${r.st.steals || 0}회 · 강탈당함 ${r.st.stolen || 0}회</div></div><div class="sc">${r.score}점</div></div>`;
+  }).join('')}</div>`;
+}
+function topHtml(){
+  const m = META(), rem = clockMs();
+  const cls = (m.status === 'playing' && rem <= 60000) ? 'warn' : '';
+  const live = m.status === 'playing' || m.status === 'paused';
+  return `<div class="b-top">
+    <div class="b-title">국어누리게임 · ${esc(m.className)} · 모둠 간 경쟁</div>
+    <div class="b-clock ${cls}">${formatClock(rem)}</div>
+    <div class="b-tools">
+      ${live ? `<button class="btn btn-ghost" onclick="doUndo()" ${GRP().undo ? '' : 'disabled style="opacity:.45"'}>되돌리기 (U)</button>` : ''}
+      <button class="btn btn-ghost" onclick="toggleMute()">소리 ${muted ? '꺼짐' : '켜짐'} (M)</button>
+      ${m.status === 'playing' ? '<button class="btn btn-amber" onclick="doPause()">일시정지</button>' : ''}
+    </div></div>`;
+}
+function footHtml(){
+  const logs = (GRP().log || []).slice(-4).reverse().map(e => `<div>${formatLog(e)}</div>`).join('');
+  return `<div class="b-foot"><div class="b-log">${logs}</div>
+    <div class="b-keys"><b>Space</b>카드 뽑기 <b>1</b>정답 <b>2</b>오답 <b>3</b>모두 모름 <b>Esc</b>판정 취소<br><b>U</b>되돌리기 <b>M</b>소리 · 반짝이는 카드를 누르면 특수 카드를 써요</div></div>`;
+}
+let lastHtml = '';
+function render(){
+  if (!game || !game.meta || game.meta.mode !== 'team') return;
+  const m = META(), g = GRP();
+  let body;
+  if (m.status === 'lobby'){
+    body = `${topHtml()}${teamsHtml()}<div class="b-stage">
+      <div class="b-line">${esc(m.className)} · ${esc(m.questionSetName)}</div>
+      <div class="b-sub">${m.durationMinutes}분 · 도전 규칙 ${m.challengeEnabled ? '켜짐' : '꺼짐'} · 턴 타이머 ${m.turnTimerSec ? m.turnTimerSec + '초' : '끔'}</div>
+      <button class="b-draw" onclick="startFromBoard()">게임 시작</button></div>`;
+  } else if (m.status === 'ended'){
+    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div>${rankingHtml()}
+      <div class="b-sub">문제별 통계(모두 모름·오답)는 관리자 화면의 결과에서 볼 수 있어요</div></div>`;
+  } else if (g.phase === 'ended'){
+    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div>${rankingHtml()}
+      <div class="b-pickrow"><button class="skip" onclick="doConfirmEnd()" style="font-size:26px;padding:14px 34px;">결과 확정하고 마치기</button></div>
+      <div class="b-sub">잘못 눌렀다면 되돌리기(U)로 마지막 동작을 취소할 수 있어요</div></div>`;
+  } else {
+    body = `${topHtml()}${teamsHtml()}<div class="b-stage">${stageHtml()}</div>${footHtml()}`;
+  }
+  const pause = m.status === 'paused'
+    ? `<div class="pause-overlay"><div class="icon">${PAUSE_SVG}</div><h2>일시정지</h2><p>남은 시간 ${formatClock(m.remainingMsAtPause)}</p><button class="btn btn-primary" style="margin-top:18px" onclick="doResume()">다시 시작</button></div>` : '';
+  const html = `<div class="b-wrap">${body}</div>${pause}`;
+  app.innerHTML = html;
+  document.querySelectorAll('.b-team.current, .hand-chip.usable').forEach(el => { el.style.animationDelay = '-' + (Date.now() % 1400) + 'ms'; });
+}
+const PAUSE_SVG = '<svg viewBox="0 0 96 96"><defs><linearGradient id="pauseG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB6E4"/><stop offset="1" stop-color="#4A72A8"/></linearGradient></defs><circle cx="48" cy="48" r="44" fill="url(#pauseG)" stroke="#fff" stroke-width="4"/><rect x="31" y="28" width="12" height="40" rx="5" fill="#fff"/><rect x="53" y="28" width="12" height="40" rx="5" fill="#fff"/></svg>';
+
+// ======================================================
+// 단축키
+// ======================================================
+function onKey(e){
+  if (document.querySelector('.modal-overlay')){ if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(x => x.remove()); return; }
+  if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (!game || !game.meta || game.meta.mode !== 'team' || game.meta.status !== 'playing') return;
+  const c = e.code;
+  if (c === 'Space'){ e.preventDefault(); doDraw(); }
+  else if (c === 'Digit1' || c === 'Numpad1') doJudge('correct');
+  else if (c === 'Digit2' || c === 'Numpad2') doJudge('incorrect');
+  else if (c === 'Digit3' || c === 'Numpad3') doJudge('unknown');
+  else if (c === 'Escape') doCancelJudge();
+  else if (c === 'KeyU') doUndo();
+  else if (c === 'KeyM') toggleMute();
+}
+
+// ======================================================
+// 시작: 관리자 PIN 확인 → 게임 구독
+// ======================================================
+function onData(){
+  if (!game){ app.innerHTML = msgScreen('게임을 찾을 수 없어요'); return; }
+  if (!game.meta || game.meta.mode !== 'team'){ app.innerHTML = msgScreen('모둠 간 경쟁 게임이 아니에요'); return; }
+  detectEvents(); render(); scheduleWork();
+}
+function startBoard(){
+  db.ref('games/' + gameId).on('value', snap => { game = snap.val(); onData(); });
+  setInterval(() => { if (game && game.meta && game.meta.mode === 'team'){ render(); scheduleWork(); tickSounds(); } }, 1000);
+  document.addEventListener('keydown', onKey);
+  const unlock = () => { ac(); document.removeEventListener('click', unlock); document.removeEventListener('keydown', unlock); };
+  document.addEventListener('click', unlock); document.addEventListener('keydown', unlock);
+}
+function renderGate(){
+  app.innerHTML = `<div class="center-screen"><div class="card-box">
+    <h2>칠판 화면</h2><p>관리자 PIN을 입력해 주세요</p>
+    <input type="password" id="gateInput" placeholder="PIN" style="width:100%; text-align:center; font-size:20px; margin:10px 0;">
+    <div id="gateErr" style="color:var(--brick); min-height:20px; font-size:14px;"></div>
+    <button class="btn btn-primary" onclick="submitGate()">열기</button></div></div>`;
+  const input = document.getElementById('gateInput');
+  input.focus(); input.addEventListener('keydown', e => { if (e.key === 'Enter') submitGate(); });
+}
+async function submitGate(){
+  const v = document.getElementById('gateInput').value.trim();
+  const pin = await getAdminPin();
+  if (v && v === pin){ sessionStorage.setItem('admin_unlocked', '1'); startBoard(); }
+  else document.getElementById('gateErr').textContent = 'PIN이 맞지 않아요';
+}
+(async function init(){
+  if (!gameId){ app.innerHTML = msgScreen('게임 주소가 올바르지 않아요'); return; }
+  if (sessionStorage.getItem('admin_unlocked') === '1'){ startBoard(); return; }
+  const pin = await getAdminPin();
+  if (!pin){ app.innerHTML = msgScreen('먼저 관리자 화면에서 PIN을 만들어주세요'); return; }
+  renderGate();
+})();
+</script>
+</body>
+</html>
