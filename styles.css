@@ -602,3 +602,23 @@ h2 .ui-icon{ color:var(--primary); margin-right:6px; }
 .confirm-banner, .pause-banner, .last-turn-banner, .solved-list .item{ font-weight:600; }
 table td{ font-weight:500; }
 .center-card .qtext, .qpaper .qtext{ font-weight:800; }
+
+/* ---- 관리자: 라디오 / 체크박스를 예쁘게 ---- */
+body.admin input[type=radio], body.admin input[type=checkbox]{
+  -webkit-appearance:none; appearance:none; width:22px; height:22px; margin:0; flex:none; cursor:pointer;
+  border:2px solid #B9D7EA; background:#fff; position:relative; vertical-align:middle; transition:border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+body.admin input[type=radio]{ border-radius:50%; }
+body.admin input[type=checkbox]{ border-radius:7px; }
+body.admin input[type=radio]:hover, body.admin input[type=checkbox]:hover{ border-color:var(--primary); }
+body.admin input[type=radio]:checked{ border-color:var(--primary); background:radial-gradient(circle, var(--primary) 0 40%, #fff 46%); box-shadow:0 0 0 4px rgba(118,159,205,0.22); }
+body.admin input[type=checkbox]:checked{ border-color:var(--primary); background:var(--primary); box-shadow:0 0 0 4px rgba(118,159,205,0.22); }
+body.admin input[type=checkbox]:checked::after{ content:""; position:absolute; left:6px; top:2px; width:6px; height:11px; border:solid #fff; border-width:0 3px 3px 0; transform:rotate(45deg); }
+body.admin input[type=radio]:focus-visible, body.admin input[type=checkbox]:focus-visible{ outline:3px solid rgba(118,159,205,0.5); outline-offset:2px; }
+body.admin .radio-row{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 0; font-size:14px; }
+body.admin .radio-row label{
+  display:flex; align-items:center; gap:10px; padding:12px 18px; border:2px solid var(--line); border-radius:16px;
+  background:#fff; cursor:pointer; font-weight:700; transition:border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+body.admin .radio-row label:hover{ border-color:var(--primary-pale); background:var(--primary-tint); }
+body.admin .radio-row label:has(input:checked){ border-color:var(--primary); background:var(--primary-tint); color:var(--primary-dark); box-shadow:0 4px 12px rgba(118,159,205,0.2); }

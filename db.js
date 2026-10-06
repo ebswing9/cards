@@ -124,6 +124,18 @@ async function startGame(gameId, allQuestions){
     const judge = first ? (judgeFor(order, first, 1) || first) : null;
 
     updates[`groups/${g}/deck`] = deck;
+    // 모둠 간 경쟁: 카드가 떨어졌을 때 턴 수를 맞추기 위한 예비 카드 (팀 수 - 1장)
+    if (game.meta.mode === 'team' && pool.length > 0){
+      const extra = Math.max(1, Object.keys(seats).length - 1);
+      const sh = shuffle(pool);
+      const reserve = [];
+      for (let i = 0; i < extra; i++){ const q = sh[i % sh.length]; reserve.push({ type: 'general', questionId: q.id, text: q.text }); }
+      updates[`groups/${g}/reserve`] = reserve;
+    } else {
+      updates[`groups/${g}/reserve`] = null;
+    }
+    updates[`groups/${g}/endReason`] = null;
+    updates[`groups/${g}/finalReason`] = null;
     updates[`groups/${g}/direction`] = 1;
     updates[`groups/${g}/currentPlayerId`] = first;
     updates[`groups/${g}/judgeId`] = judge;
@@ -623,6 +635,7 @@ function endGroupIfTimeUp(gameId, g, endAt){
       const need = seq.filter(id => (taken[id] || 0) < max); // 턴이 부족한 팀만
       if (need.length === 0){
         group.phase = 'ended';
+        group.endReason = 'time';
         pushLog(group, '시간이 끝나 게임을 종료해요');
         return group;
       }
@@ -634,6 +647,7 @@ function endGroupIfTimeUp(gameId, g, endAt){
       }
       group.pendingSkip = false; group.pendingFlip = false;
       group.finalRound = { active: true, queue: need.slice(1) };
+      group.finalReason = 'time';
       pushLog(group, '시간이 끝났어요! 마지막 한 바퀴를 진행해요');
       return group;
     }

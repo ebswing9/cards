@@ -8,8 +8,7 @@
 <link rel="stylesheet" href="styles.css">
 <style>
   body{ margin:0; user-select:none; }
-  kbd{ font-family:'Pretendard',sans-serif; font-size:0.55em; font-weight:800; background:rgba(255,255,255,0.28); border:1.5px solid rgba(255,255,255,0.55); border-radius:8px; padding:1px 8px; margin-left:8px; vertical-align:middle; }
-  .b-wrap{ min-height:100vh; display:flex; flex-direction:column; padding:12px 22px 14px; gap:12px; max-width:1900px; margin:0 auto; }
+  .b-wrap{ min-height:100vh; display:flex; flex-direction:column; padding:12px 22px 14px; gap:14px; max-width:1900px; margin:0 auto; }
 
   /* 상단 바 */
   .b-top{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
@@ -20,23 +19,29 @@
   .b-tools{ display:flex; gap:8px; }
   .b-tools .btn{ padding:8px 16px; font-size:14px; }
 
-  /* 팀 카드 */
-  .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
-  .b-team{ position:relative; background:#fff; border:4px solid var(--line); border-top:12px solid var(--tc); border-radius:26px; padding:10px 14px 14px; text-align:center; box-shadow:0 8px 22px rgba(118,159,205,0.18); transition:transform 0.2s; }
-  .b-team-name{ font-size:clamp(22px,1.8vw,32px); font-weight:900; color:var(--ink); }
-  .b-score{ font-size:clamp(54px,5vw,84px); font-weight:900; line-height:1.05; color:var(--tc); }
+  /* 팀 카드: 위쪽 띠가 팀 색이에요 */
+  .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; padding-top:26px; }
+  .b-team{ position:relative; background:#fff; border:4px solid var(--line); border-radius:26px; padding:0 14px 14px; text-align:center; box-shadow:0 8px 22px rgba(118,159,205,0.18); transition:transform 0.2s; }
+  .b-team-head{ background:var(--tc); color:var(--on); margin:-4px -18px 6px; padding:8px 10px; border-radius:22px 22px 0 0; font-size:clamp(22px,1.9vw,32px); font-weight:900; }
+  .b-score{ font-size:clamp(54px,5vw,84px); font-weight:900; line-height:1.05; color:var(--ink); }
   .b-score small{ font-size:0.32em; margin-left:4px; color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; }
-  .b-chips{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
-  .b-team .hand-chip{ width:58px; padding:3px 3px 4px; border-radius:13px; }
-  .b-team .hand-chip .ico{ height:30px; margin-bottom:2px; }
-  .b-team .hand-chip .lb{ font-size:10px; }
+  .b-chips{ display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  .b-team .hand-chip{ width:64px; padding:3px 3px 5px; border-radius:14px; }
+  .b-team .hand-chip .ico{ height:34px; margin-bottom:3px; }
+  .b-team .hand-chip .lb{ font-size:12px; white-space:nowrap; }
   .b-team .hand-chip .n{ min-width:22px; height:22px; font-size:12px; top:-8px; right:-8px; }
-  .b-team .hand-chip .use-tag{ font-size:10px; padding:1px 7px; }
-  .b-team.current{ border-color:#5B9BE0; animation:seatGlow 1.4s ease-in-out infinite; transform:translateY(-3px); }
-  .b-turn-tag{ position:absolute; top:-26px; left:50%; transform:translateX(-50%); background:#5B9BE0; color:#fff; font-family:'Pretendard',sans-serif; font-weight:800; font-size:14px; padding:2px 16px; border-radius:999px; border:3px solid #fff; white-space:nowrap; }
-  .b-team.pickable{ cursor:pointer; border-color:#E8465F; animation:pickPulse 1s ease-in-out infinite; }
+  .b-team .hand-chip .use-tag{ font-size:10.5px; padding:1px 8px; }
+  /* 현재 차례: 팀 색으로 발광 */
+  .b-team.current{ border-color:var(--tc); animation:teamGlow 1.4s ease-in-out infinite; transform:translateY(-3px); }
+  @keyframes teamGlow{
+    0%,100%{ box-shadow:0 0 8px 1px var(--tg), 0 6px 16px rgba(0,0,0,0.06); }
+    50%{ box-shadow:0 0 28px 9px var(--tg2), 0 6px 16px rgba(0,0,0,0.06); }
+  }
+  .b-turn-tag{ position:absolute; top:-26px; left:50%; transform:translateX(-50%); z-index:2; background:var(--tc); color:var(--on); font-family:'Pretendard',sans-serif; font-weight:800; font-size:14px; padding:2px 16px; border-radius:999px; border:3px solid #fff; white-space:nowrap; }
+  .b-team.pickable{ cursor:pointer; border-color:var(--tc); animation:pickPulse 1s ease-in-out infinite; }
   .b-team.pickable:hover{ transform:translateY(-4px) scale(1.02); }
-  @keyframes pickPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,70,95,0.45); } 50%{ box-shadow:0 0 0 12px rgba(232,70,95,0); } }
+  @keyframes pickPulse{ 0%,100%{ box-shadow:0 0 0 0 var(--tg2); } 50%{ box-shadow:0 0 0 12px rgba(255,255,255,0); } }
+  .b-chip{ display:inline-block; padding:0 22px; border-radius:999px; margin:0 4px; line-height:1.4; }
 
   /* 가운데 무대 */
   .b-stage{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:14px 0; text-align:center; min-height:0; }
@@ -45,27 +50,26 @@
   .b-stage .qpaper .qtext{ font-size:clamp(30px,3.3vw,58px); line-height:1.5; }
   .b-stage .center-card.is-question .type-tag{ font-size:clamp(16px,1.4vw,22px); }
   .b-line{ font-size:clamp(26px,2.6vw,44px); font-weight:900; color:var(--ink); }
-  .b-line b{ font-weight:900; }
   .b-sub{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:clamp(16px,1.3vw,22px); color:var(--ink-soft); }
-  .b-draw{ font-size:clamp(28px,2.6vw,44px); padding:14px 56px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
+  .b-draw{ font-family:var(--font-main); font-size:clamp(26px,2.3vw,38px); padding:12px 50px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
   .b-draw:active{ transform:scale(0.96); }
   body.board .deck-pile{ height:130px; width:140px; margin:0 auto; }
   body.board .deck-pile .card-back{ width:88px; height:124px; }
-  .b-judge{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
-  .b-judge button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(24px,2.2vw,36px); padding:16px 38px; border:none; border-radius:22px; color:#fff; cursor:pointer; min-width:210px; }
-  .b-judge .j-ok{ background:linear-gradient(155deg,#43D49A,#1FA971); box-shadow:0 8px 20px rgba(31,169,113,0.4); }
-  .b-judge .j-no{ background:linear-gradient(155deg,#FF8095,#E8465F); box-shadow:0 8px 20px rgba(232,70,95,0.4); }
-  .b-judge .j-unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); box-shadow:0 8px 20px rgba(110,129,150,0.35); }
+  .b-judge{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .b-judge button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(18px,1.6vw,26px); padding:10px 30px; border:none; border-radius:16px; color:#fff; cursor:pointer; min-width:150px; }
+  .b-judge .j-ok{ background:linear-gradient(155deg,#43D49A,#1FA971); box-shadow:0 6px 16px rgba(31,169,113,0.35); }
+  .b-judge .j-no{ background:linear-gradient(155deg,#FF8095,#E8465F); box-shadow:0 6px 16px rgba(232,70,95,0.35); }
+  .b-judge .j-unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); box-shadow:0 6px 16px rgba(110,129,150,0.3); }
   .b-judge .j-pass{ background:#fff; color:#2E9C78; border:3px solid #2E9C78; min-width:0; }
-  .b-pending{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(22px,2vw,32px); background:#fff; border-radius:22px; padding:14px 30px; box-shadow:0 8px 22px rgba(118,159,205,0.22); display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .b-pending{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(20px,1.8vw,28px); background:#fff; border-radius:20px; padding:12px 28px; box-shadow:0 8px 22px rgba(118,159,205,0.22); display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; }
   .b-timer{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:4px 18px; border-radius:999px; background:#fff; color:var(--primary-dark); }
   .b-timer.over{ background:#E8465F; color:#fff; animation:warnPulse 0.8s ease-in-out infinite; }
-  .b-banner{ display:flex; align-items:center; gap:16px; background:#fff; border:3px solid var(--primary-pale); border-radius:22px; padding:10px 26px; font-size:clamp(20px,1.9vw,30px); font-weight:900; box-shadow:0 8px 22px rgba(118,159,205,0.2); }
-  .b-banner .steal-reveal-card{ width:54px; height:72px; margin:0; border-width:3px; border-radius:12px; animation:none; }
   .b-pickrow{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
-  .b-pickrow button{ font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); background:#fff; color:var(--ink); cursor:pointer; }
-  .b-pickrow button:hover{ background:var(--primary-tint); }
-  .b-pickrow button.skip{ border-color:var(--ink-soft); color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; }
+  .b-pickrow button{ font-family:var(--font-main); font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.12); }
+  .b-pickrow button:hover{ transform:translateY(-3px); }
+  .b-pickrow button.skip{ background:#fff; border-color:var(--ink-soft); color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; box-shadow:none; }
+  .b-act{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:22px; padding:12px 28px; border-radius:18px; border:none; color:#fff; cursor:pointer; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 6px 16px rgba(74,114,168,0.35); }
+  .b-act:disabled{ opacity:0.4; cursor:default; box-shadow:none; }
   .b-def{ display:flex; flex-direction:column; gap:12px; align-items:center; }
   .b-def-row{ display:flex; gap:14px; align-items:center; background:#fff; border-radius:20px; padding:10px 22px; font-size:clamp(20px,1.8vw,28px); font-weight:900; box-shadow:0 6px 16px rgba(118,159,205,0.18); }
   .b-def-row button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:8px 22px; border-radius:14px; border:none; cursor:pointer; color:#fff; }
@@ -76,17 +80,59 @@
   .b-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
   .b-log{ font-family:'Pretendard',sans-serif; font-weight:600; font-size:15px; color:var(--ink-soft); line-height:1.6; min-height:60px; }
   .b-log div:first-child{ color:var(--ink); font-weight:800; }
-  .b-keys{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:13px; color:var(--ink-soft); text-align:right; line-height:1.7; }
-  .b-keys b{ background:#fff; border:1.5px solid var(--line); border-radius:7px; padding:0 7px; margin-right:3px; color:var(--primary-dark); }
+  .b-keys{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:13px; color:var(--ink-soft); text-align:right; line-height:1.9; }
+  .b-keys b{ background:#fff; border:1.5px solid var(--line); border-radius:7px; padding:0 7px; margin:0 3px 0 10px; color:var(--primary-dark); }
 
   /* 결과 */
-  .b-rank{ display:flex; flex-direction:column; gap:12px; width:min(900px,92%); }
-  .b-rank-row{ display:flex; align-items:center; gap:22px; background:#fff; border-radius:24px; padding:12px 30px; border-left:14px solid var(--tc); box-shadow:0 8px 20px rgba(118,159,205,0.2); }
-  .b-rank-row .rk{ font-size:clamp(34px,3.6vw,60px); font-weight:900; width:90px; color:var(--tc); }
-  .b-rank-row .nm{ flex:1; text-align:left; font-size:clamp(26px,2.6vw,44px); font-weight:900; }
-  .b-rank-row .sc{ font-size:clamp(34px,3.6vw,60px); font-weight:900; color:var(--tc); }
+  .b-rank{ display:flex; flex-direction:column; gap:9px; width:min(900px,92%); }
+  .b-rank-row{ display:flex; align-items:center; gap:22px; background:#fff; border-radius:24px; padding:6px 30px 6px 0; overflow:hidden; box-shadow:0 8px 20px rgba(118,159,205,0.2); }
+  .b-rank-row .bar{ align-self:stretch; width:18px; background:var(--tc); }
+  .b-rank-row .rk{ font-size:clamp(30px,3vw,50px); font-weight:900; width:110px; white-space:nowrap; color:var(--ink); }
+  .b-rank-row .nm{ flex:1; text-align:left; font-size:clamp(24px,2.3vw,40px); font-weight:900; line-height:1.25; }
+  .b-rank-row .sc{ font-size:clamp(30px,3vw,50px); font-weight:900; color:var(--ink); white-space:nowrap; }
   .b-rank-row .st{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:16px; color:var(--ink-soft); }
   .b-rank-row.first{ background:linear-gradient(160deg,#fff,var(--gold-tint)); }
+
+  /* 알림(토스트)은 팀 카드 아래쪽에 */
+  body.board .game-notice{ top:clamp(300px,34vh,420px); max-width:min(90vw,720px); font-size:clamp(20px,1.6vw,28px); padding:16px 34px; }
+
+  /* 시간 초과 전체 화면 효과 */
+  .silence-fx.fx-timeup{ background:radial-gradient(circle at 50% 45%, rgba(190,50,70,0.62), rgba(70,10,25,0.93)); }
+  .fx-timeup .sfx-icon{ animation:sfxPop 0.5s cubic-bezier(.2,1.2,.3,1) both, clockShake 0.3s linear 0.5s infinite; }
+  .fx-timeup .sfx-icon::before, .fx-timeup .sfx-icon::after{ border-color:rgba(255,200,210,0.8); }
+  @keyframes clockShake{ 0%,100%{ transform:rotate(-9deg); } 50%{ transform:rotate(9deg); } }
+
+  /* 화면 높이가 낮은 PC에서도 한 화면에 다 보이도록 */
+  @media (max-height:960px){
+    .b-wrap{ gap:8px; padding:8px 18px 10px; }
+    .b-teams{ padding-top:26px; gap:12px; }
+    .b-team-head{ font-size:22px; padding:5px 8px; margin-bottom:3px; }
+    .b-score{ font-size:clamp(38px,6vh,62px); }
+    .b-team .hand-chip{ width:58px; }
+    .b-team .hand-chip .ico{ height:28px; }
+    .b-chips{ margin-top:5px; }
+    .b-stage{ gap:10px; padding:6px 0; }
+    .b-line{ font-size:clamp(22px,3.4vh,36px); }
+    .b-stage .center-card.is-question{ margin-top:26px; }
+    .b-stage .qpaper{ min-height:80px; padding:16px 14px 14px; }
+    .b-stage .qpaper .qtext{ font-size:clamp(26px,4.2vh,46px); }
+    body.board .deck-pile{ height:96px; } body.board .deck-pile .card-back{ width:66px; height:94px; }
+    .b-clock{ font-size:34px; }
+    .b-log{ min-height:34px; font-size:14px; }
+    .b-judge button{ padding:8px 26px; }
+  }
+  @media (max-height:780px){
+    .b-team-head{ font-size:19px; padding:3px 8px; }
+    .b-score{ font-size:clamp(32px,5.4vh,46px); }
+    .b-team .hand-chip{ width:52px; } .b-team .hand-chip .ico{ height:24px; } .b-team .hand-chip .lb{ font-size:11px; }
+    .b-stage .qpaper{ min-height:64px; }
+    .b-stage .qpaper .qtext{ font-size:clamp(22px,4vh,34px); }
+    .b-line{ font-size:clamp(20px,3.2vh,28px); }
+    .b-sub{ font-size:14px; }
+    body.board .deck-pile{ height:76px; } body.board .deck-pile .card-back{ width:52px; height:74px; }
+    .b-log div:nth-child(n+3){ display:none; }
+    .b-clock{ font-size:28px; }
+  }
 </style>
 </head>
 <body class="board">
@@ -115,6 +161,14 @@ function showToast(msg){
   t.textContent = msg; t.classList.add('show');
   clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
+// 색 헬퍼: 팀 색 위에 올릴 글자색, 반투명 색, 팀 이름표
+function lum(hex){
+  const n = parseInt(hex.slice(1), 16), f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255);
+}
+const onColor = hex => lum(hex) > 0.34 ? '#2C3E50' : '#FFFFFF';
+function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
+function chip(id){ const c = tColor(id); return `<span class="b-chip" style="background:${c};color:${onColor(c)}">${esc(tName(id))}</span>`; }
 function msgScreen(text){ return `<div class="center-screen"><div class="card-box"><h2>${esc(text)}</h2></div></div>`; }
 
 // ---------- 한국어 조사 ----------
@@ -182,13 +236,14 @@ function toggleMute(){ muted = !muted; localStorage.setItem('board_muted', muted
 // 전체 화면 효과 (침묵 / 강탈 공개)
 // ======================================================
 const SILENCE_FX_SVG = '<svg viewBox="0 0 64 64" fill="none"><path d="M12 12h40a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H33l-11 10v-10H12a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6Z" fill="#E8EEF2" stroke="#5B6B7C" stroke-width="3" stroke-linejoin="round"/><circle cx="21" cy="27" r="3" fill="#5B6B7C"/><circle cx="32" cy="27" r="3" fill="#5B6B7C"/><circle cx="43" cy="27" r="3" fill="#5B6B7C"/><path d="M9 56 55 8" stroke="#fff" stroke-width="9" stroke-linecap="round"/><path d="M9 56 55 8" stroke="#E8465F" stroke-width="4.5" stroke-linecap="round"/></svg>';
+const CLOCK_FX_SVG = '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="35" r="20" fill="#FFE9EE" stroke="#C93049" stroke-width="4"/><path d="M32 22v14l9 6" stroke="#C93049" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 14l8-6M54 14l-8-6" stroke="#C93049" stroke-width="5" stroke-linecap="round"/><path d="M20 55l-5 6M44 55l5 6" stroke="#C93049" stroke-width="4" stroke-linecap="round"/></svg>';
 function playFx(kind, title, sub, ms){
   document.querySelectorAll('.silence-fx').forEach(e => e.remove());
   const el = document.createElement('div');
   el.className = 'silence-fx fx-' + kind;
   const art = kind === 'steal'
     ? `<div class="sfx-card" style="background:${CARD_COLORS.steal};">${cardIcon('steal',72)}</div>`
-    : `<div class="sfx-icon">${SILENCE_FX_SVG}</div>`;
+    : `<div class="sfx-icon">${kind === 'timeup' ? CLOCK_FX_SVG : SILENCE_FX_SVG}</div>`;
   el.innerHTML = `${art}<div class="sfx-text">${title}</div><div class="sfx-sub">${sub}</div>`;
   const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 500); };
   el.onclick = close;
@@ -217,10 +272,15 @@ function detectEvents(){
     sfx('steal');
     playFx('steal', '사실은 강탈 카드!', `${esc(tName(g.lastStealReveal.playerId))}의 문제는 강탈 카드였어요!<br>누구의 카드를 뺏을까요?`, 3600);
   }
-  if (cur.draw && cur.draw !== seen.draw) sfx('special');
+  if (cur.draw && cur.draw !== seen.draw){
+    sfx('special');
+    const d = g.lastDraw;
+    pushNotice(`${esc(ga(tName(d.playerId)))} ${esc(reul(CARD_LABELS[d.type]))} 뽑았어요!`, 3200);
+  }
   if (cur.effect && cur.effect !== seen.effect){
     const e = g.lastEffect;
     if (!e.success) sfx('defense'); else sfx(e.effect === 'steal' ? 'steal' : e.effect);
+    pushNotice(effectText(e), 4200);
   }
   if (seen.phase === 'pre_turn' && cur.phase === 'awaiting_answer') sfx('draw');
   if (cur.phase === 'judge_pending' && seen.phase !== 'judge_pending') sfx('pick');
@@ -235,7 +295,10 @@ function tickSounds(){
   const rem = clockMs();
   if (rem > 0 && rem <= 10500){ const k = Math.ceil(rem / 1000); if (k !== tickKey){ tickKey = k; sfx('tick'); } }
   const t = turnRemainingSec();
-  if (t != null && t <= 0){ const k = GRP().turnNumber; if (k !== overKey){ overKey = k; sfx('over'); } }
+  if (t != null && t <= 0){
+    const k = GRP().turnNumber;
+    if (k !== overKey){ overKey = k; sfx('over'); playFx('timeup', '시간 초과!', '이제 정리하고 답을 정해 주세요', 2800); }
+  }
 }
 
 // ======================================================
@@ -385,25 +448,13 @@ function effectIcon(e){
   if (e.effect === 'steal') return e.cardType || 'steal';
   return e.effect;
 }
-function bannersHtml(){
-  const g = GRP(); let h = '';
-  if (g.lastDraw && serverNow() - g.lastDraw.ts < 6000){
-    const d = g.lastDraw, t = d.type;
-    h += `<div class="b-banner"><div class="steal-reveal-card" style="background:${CARD_COLORS[t]};">${cardIcon(t,30)}</div><div>${esc(ga(tName(d.playerId)))} ${esc(reul(CARD_LABELS[t]))} 뽑았어요!</div></div>`;
-  }
-  if (g.lastEffect && serverNow() - g.lastEffect.ts < (g.lastEffect.effect === 'steal' ? 6000 : 4500)){
-    const e = g.lastEffect, t = effectIcon(e);
-    h += `<div class="b-banner"><div class="steal-reveal-card" style="background:${CARD_COLORS[t]};">${cardIcon(t,30)}</div><div>${effectText(e)}</div></div>`;
-  }
-  return h;
-}
 function chipsHtml(id){
   const hand = handOf(id);
   return HAND_TYPES.map(t => {
     const n = hand[t] || 0, usable = isUsable(id, t);
     return `<div class="hand-chip t-${t} ${n ? '' : 'zero'} ${usable ? 'usable' : ''}" ${usable ? `onclick="event.stopPropagation(); askUse('${t}')"` : ''}>
       <div class="n">${n}</div>${usable ? '<span class="use-tag">사용</span>' : ''}
-      <div class="ico">${cardIcon(t,22)}</div><div class="lb">${CARD_LABELS[t]}</div></div>`;
+      <div class="ico">${cardIcon(t,24)}</div><div class="lb">${CARD_LABELS[t].replace(" 카드","")}</div></div>`;
   }).join('');
 }
 function pickableSet(){
@@ -418,10 +469,10 @@ function teamsHtml(){
   const live = META().status === 'playing' || META().status === 'paused';
   return `<div class="b-teams">${teamIds().map(id => {
     const cur = live && g.phase !== 'ended' && g.currentPlayerId === id;
-    const sc = handScore(handOf(id));
-    return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${tColor(id)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
+    const c = tColor(id), sc = handScore(handOf(id));
+    return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${c};--on:${onColor(c)};--tg:${rgba(c, 0.55)};--tg2:${rgba(c, 0.95)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
       ${cur ? '<div class="b-turn-tag">지금 차례</div>' : ''}
-      <div class="b-team-name">${esc(tName(id))}</div>
+      <div class="b-team-head">${esc(tName(id))}</div>
       <div class="b-score">${sc}<small>점</small></div>
       <div class="b-chips">${chipsHtml(id)}</div></div>`;
   }).join('')}</div>`;
@@ -441,53 +492,52 @@ function judgeButtons(withUnknown){
   const pass = (g.phase === 'awaiting_answer' && isUsable(g.currentPlayerId, 'pass'))
     ? `<button class="j-pass" onclick="askUse('pass')">패스 카드 사용</button>` : '';
   return `<div class="b-judge">
-    <button class="j-ok" onclick="doJudge('correct')">정답<kbd>1</kbd></button>
-    <button class="j-no" onclick="doJudge('incorrect')">오답<kbd>2</kbd></button>
-    ${withUnknown ? `<button class="j-unk" onclick="doJudge('unknown')">모두 모름<kbd>3</kbd></button>` : ''}
+    <button class="j-ok" onclick="doJudge('correct')">정답</button>
+    <button class="j-no" onclick="doJudge('incorrect')">오답</button>
+    ${withUnknown ? `<button class="j-unk" onclick="doJudge('unknown')">모두 모름</button>` : ''}
     ${pass}</div>`;
 }
 function stageHtml(){
   const m = META(), g = GRP(), cur = g.currentPlayerId;
-  const ban = bannersHtml();
   const finalNote = (g.finalRound && g.finalRound.active) ? '<div class="b-sub">마지막 한 바퀴예요! 턴이 부족한 팀만 진행해요</div>' : '';
   if (g.phase === 'pre_turn'){
     const jt = isUsable(cur, 'jump') || isUsable(cur, 'turn');
-    return `${ban}${finalNote}
-      <div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 차례!</div>${turnTimerHtml()}
+    return `${finalNote}
+      <div class="b-line">${chip(cur)}의 차례!</div>${turnTimerHtml()}
       <div class="deck-pile" onclick="doDraw()" style="cursor:pointer"><div class="card-back"></div><div class="card-back"></div><div class="card-back"></div></div>
-      <button class="b-draw" onclick="doDraw()">카드 뽑기<kbd>Space</kbd></button>
+      <button class="b-draw" onclick="doDraw()">카드 뽑기</button>
       ${jt ? '<div class="b-sub">반짝이는 카드를 누르면 점프·전환을 쓸 수 있어요 (카드를 뽑기 전에만!)</div>' : ''}`;
   }
   if (g.phase === 'awaiting_answer' && g.currentCard){
-    return `${ban}<div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 문제</div>${turnTimerHtml()}
+    return `<div class="b-line">${chip(cur)}의 문제</div>${turnTimerHtml()}
       ${questionHtml(g.currentCard)}${judgeButtons(true)}`;
   }
   if (g.phase === 'judge_pending' && g.pendingJudge){
     const r = g.pendingJudge.result, sec = Math.max(0, Math.ceil((g.pendingJudge.deadline - serverNow()) / 1000));
     const label = r === 'correct' ? '정답' : r === 'incorrect' ? '오답' : '모두 모름';
     const who = (g.challenge && g.challenge.challengerId) ? g.challenge.challengerId : cur;
-    return `<div class="b-line"><span style="color:${tColor(who)}">${esc(tName(who))}</span></div>${g.currentCard ? questionHtml(g.currentCard) : ''}
-      <div class="b-pending"><span>판정: ${label} · ${sec}초 뒤 확정</span><button class="btn btn-ghost" onclick="doCancelJudge()">취소<kbd style="background:#EAF2F8;color:var(--primary-dark);border-color:var(--primary-pale)">Esc</kbd></button></div>`;
+    return `<div class="b-line">${chip(who)}</div>${g.currentCard ? questionHtml(g.currentCard) : ''}
+      <div class="b-pending"><span>판정: ${label} · ${sec}초 뒤 확정</span><button class="btn btn-ghost" onclick="doCancelJudge()">취소</button></div>`;
   }
   if (g.phase === 'challenge_pick'){
     const tried = (g.challenge || {}).tried || [];
     const left = teamIds().filter(id => tried.indexOf(id) === -1);
-    return `${ban}<div class="b-line">${esc(tried.length > 1 ? '또 오답!' : ga(tName(cur)) + ' 오답!')} 도전할 모둠을 정해요</div>
+    return `<div class="b-line">${tried.length > 1 ? '또 오답!' : chip(cur) + '오답!'} 도전할 모둠을 정해요</div>
       <div class="b-sub">가위바위보로 도전 팀을 정한 뒤 눌러주세요</div>
       ${g.currentCard ? questionHtml(g.currentCard) : ''}
-      <div class="b-pickrow">${left.map(id => `<button style="--tc:${tColor(id)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`).join('')}
+      <div class="b-pickrow">${left.map(id => { const c = tColor(id); return `<button style="--tc:${c};background:${c};color:${onColor(c)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`; }).join('')}
         <button class="skip" onclick="doSkipChallenge()">도전 없이 넘어가기</button></div>`;
   }
   if (g.phase === 'challenge_answer' && g.currentCard){
     const ch = (g.challenge || {}).challengerId;
-    return `${ban}<div class="b-line"><span style="color:${tColor(ch)}">${esc(tName(ch))}</span>의 도전!</div>
+    return `<div class="b-line">${chip(ch)}의 도전!</div>
       ${questionHtml(g.currentCard)}${judgeButtons(false)}`;
   }
   if (g.phase === 'steal_pick'){
     const targets = teamIds().filter(id => id !== cur && handTotal(handOf(id)) > 0);
-    return `${ban}<div class="b-line"><span style="color:${tColor(cur)}">${esc(tName(cur))}</span>의 강탈!</div>
+    return `<div class="b-line">${chip(cur)}의 강탈!</div>
       <div class="b-sub">카드를 뺏을 팀을 눌러주세요 (위쪽 팀 카드를 눌러도 돼요)</div>
-      <div class="b-pickrow">${targets.map(id => `<button style="--tc:${tColor(id)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`).join('')}</div>`;
+      <div class="b-pickrow">${targets.map(id => { const c = tColor(id); return `<button style="--tc:${c};background:${c};color:${onColor(c)}" onclick="pickTeam('${id}')">${esc(tName(id))}</button>`; }).join('')}</div>`;
   }
   if (g.phase === 'awaiting_defense' && g.defenseWindow){
     const dw = g.defenseWindow, resp = dw.responses || {};
@@ -498,30 +548,41 @@ function stageHtml(){
       if (resp[id] !== undefined) right = `<span class="b-def-done">${resp[id] ? '방어 카드 사용!' : '사용 안 함'}</span>`;
       else if (!has) right = '<span class="b-def-done">방어 카드 없음</span>';
       else right = `<button class="d-yes" onclick="doDefense('${id}', true)">방어 카드 사용</button><button class="d-no" onclick="doDefense('${id}', false)">사용 안 함</button>`;
-      return `<div class="b-def-row"><span style="color:${tColor(id)}">${esc(tName(id))}</span>${right}</div>`;
+      return `<div class="b-def-row">${chip(id)}${right}</div>`;
     }).join('');
-    return `${ban}<div class="b-line">${esc(ga(tName(dw.actorId)))} ${what} 카드를 썼어요!</div>
+    return `<div class="b-line">${chip(dw.actorId)}${what} 카드를 썼어요!</div>
       <div class="b-sub">방어 카드가 있는 팀에게 물어보고 눌러주세요</div><div class="b-def">${rows}</div>`;
   }
-  return ban;
+  return '';
 }
 function rankingHtml(){
   const g = GRP();
-  const rows = teamIds().map(id => ({ id, score: handScore(handOf(id)), st: (g.stats || {})[id] || {} }))
+  const rows = teamIds().map(id => ({ id, score: handScore(handOf(id)), st: (g.stats || {})[id] || {}, turns: (g.turnsTaken || {})[id] || 0 }))
     .sort((a, b) => b.score - a.score);
   let rank = 0, prev = null;
   return `<div class="b-rank">${rows.map((r, i) => {
     if (r.score !== prev){ rank = i + 1; prev = r.score; }
-    return `<div class="b-rank-row ${rank === 1 ? 'first' : ''}" style="--tc:${tColor(r.id)}">
-      <div class="rk">${rank}위</div><div class="nm">${esc(tName(r.id))}<div class="st">강탈 성공 ${r.st.steals || 0}회 · 강탈당함 ${r.st.stolen || 0}회</div></div><div class="sc">${r.score}점</div></div>`;
+    return `<div class="b-rank-row ${rank === 1 ? 'first' : ''}" style="--tc:${tColor(r.id)}"><div class="bar"></div>
+      <div class="rk">${rank}위</div><div class="nm">${esc(tName(r.id))}<div class="st">턴 ${r.turns}번 · 강탈 성공 ${r.st.steals || 0}회 · 강탈당함 ${r.st.stolen || 0}회</div></div><div class="sc">${r.score}점</div></div>`;
   }).join('')}</div>`;
+}
+// 결과 화면의 '문제별 슬라이드' 버튼 (관리자 화면의 것과 같아요)
+function resultActionsHtml(){
+  const u = qStatList('unknown').length, w = qStatList('incorrect').length;
+  return `<div class="b-pickrow">
+    <button class="b-act" ${u ? `onclick="openStatSlides('unknown')"` : 'disabled'}>모두 모름 문제 슬라이드로 보기${u ? ' (' + u + ')' : ''}</button>
+    <button class="b-act" ${w ? `onclick="openStatSlides('incorrect')"` : 'disabled'}>오답 많은 문제 슬라이드로 보기${w ? ' (' + w + ')' : ''}</button></div>`;
+}
+function endReasonText(){
+  const r = GRP().endReason;
+  return r === 'deck' ? '카드가 모두 소진되어 게임이 끝났어요' : r === 'time' ? '시간이 끝나 마지막 한 바퀴까지 마쳤어요' : '';
 }
 function topHtml(){
   const m = META(), rem = clockMs();
   const cls = (m.status === 'playing' && rem <= 60000) ? 'warn' : '';
   const live = m.status === 'playing' || m.status === 'paused';
   return `<div class="b-top">
-    <div class="b-title">국어누리게임 · ${esc(m.className)} · 모둠 간 경쟁</div>
+    <div class="b-title">국어누리게임 · ${esc(m.className)}</div>
     <div class="b-clock ${cls}">${formatClock(rem)}</div>
     <div class="b-tools">
       ${live ? `<button class="btn btn-ghost" onclick="doUndo()" ${GRP().undo ? '' : 'disabled style="opacity:.45"'}>되돌리기 (U)</button>` : ''}
@@ -532,9 +593,8 @@ function topHtml(){
 function footHtml(){
   const logs = (GRP().log || []).slice(-4).reverse().map(e => `<div>${formatLog(e)}</div>`).join('');
   return `<div class="b-foot"><div class="b-log">${logs}</div>
-    <div class="b-keys"><b>Space</b>카드 뽑기 <b>1</b>정답 <b>2</b>오답 <b>3</b>모두 모름 <b>Esc</b>판정 취소<br><b>U</b>되돌리기 <b>M</b>소리 · 반짝이는 카드를 누르면 특수 카드를 써요</div></div>`;
+    <div class="b-keys"><b>Space</b>카드 뽑기<b>1</b>정답<b>2</b>오답<b>3</b>모두 모름<b>Esc</b>판정 취소<b>U</b>되돌리기<b>M</b>소리</div></div>`;
 }
-let lastHtml = '';
 function render(){
   if (!game || !game.meta || game.meta.mode !== 'team') return;
   const m = META(), g = GRP();
@@ -545,27 +605,113 @@ function render(){
       <div class="b-sub">${m.durationMinutes}분 · 도전 규칙 ${m.challengeEnabled ? '켜짐' : '꺼짐'} · 턴 타이머 ${m.turnTimerSec ? m.turnTimerSec + '초' : '끔'}</div>
       <button class="b-draw" onclick="startFromBoard()">게임 시작</button></div>`;
   } else if (m.status === 'ended'){
-    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div>${rankingHtml()}
-      <div class="b-sub">문제별 통계(모두 모름·오답)는 관리자 화면의 결과에서 볼 수 있어요</div></div>`;
+    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div><div class="b-sub">${endReasonText()}</div>${rankingHtml()}
+      ${resultActionsHtml()}</div>`;
   } else if (g.phase === 'ended'){
-    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div>${rankingHtml()}
-      <div class="b-pickrow"><button class="skip" onclick="doConfirmEnd()" style="font-size:26px;padding:14px 34px;">결과 확정하고 마치기</button></div>
+    body = `${topHtml()}<div class="b-stage"><div class="b-line">게임 끝! 최종 순위</div><div class="b-sub">${endReasonText()}</div>${rankingHtml()}
+      ${resultActionsHtml()}
+      <div class="b-pickrow"><button class="skip" onclick="doConfirmEnd()" style="font-size:24px;padding:12px 32px;">결과 확정하고 마치기</button></div>
       <div class="b-sub">잘못 눌렀다면 되돌리기(U)로 마지막 동작을 취소할 수 있어요</div></div>`;
   } else {
     body = `${topHtml()}${teamsHtml()}<div class="b-stage">${stageHtml()}</div>${footHtml()}`;
   }
   const pause = m.status === 'paused'
     ? `<div class="pause-overlay"><div class="icon">${PAUSE_SVG}</div><h2>일시정지</h2><p>남은 시간 ${formatClock(m.remainingMsAtPause)}</p><button class="btn btn-primary" style="margin-top:18px" onclick="doResume()">다시 시작</button></div>` : '';
-  const html = `<div class="b-wrap">${body}</div>${pause}`;
-  app.innerHTML = html;
-  document.querySelectorAll('.b-team.current, .hand-chip.usable').forEach(el => { el.style.animationDelay = '-' + (Date.now() % 1400) + 'ms'; });
+  app.innerHTML = `<div class="b-wrap">${body}</div>${pause}`;
+  document.querySelectorAll('.b-team.current, .b-team.pickable, .hand-chip.usable').forEach(el => { el.style.animationDelay = '-' + (Date.now() % 1400) + 'ms'; });
 }
 const PAUSE_SVG = '<svg viewBox="0 0 96 96"><defs><linearGradient id="pauseG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB6E4"/><stop offset="1" stop-color="#4A72A8"/></linearGradient></defs><circle cx="48" cy="48" r="44" fill="url(#pauseG)" stroke="#fff" stroke-width="4"/><rect x="31" y="28" width="12" height="40" rx="5" fill="#fff"/><rect x="53" y="28" width="12" height="40" rx="5" fill="#fff"/></svg>';
 
 // ======================================================
 // 단축키
 // ======================================================
+// ======================================================
+// 알림(토스트): 학생 화면과 같은 방식 (로그 번호로 새 알림을 구분해요)
+// ======================================================
+let noticeQueue = [], noticeShowing = false, noticeStartedAt = 0;
+function pushNotice(html, ms){
+  noticeQueue.push({ html, ms: ms || 2200 });
+  if (noticeShowing && Date.now() - noticeStartedAt > 9000) noticeShowing = false;
+  if (!noticeShowing) playNextNotice();
+}
+function playNextNotice(){
+  if (noticeQueue.length === 0){ noticeShowing = false; return; }
+  noticeShowing = true; noticeStartedAt = Date.now();
+  const n = noticeQueue.shift();
+  document.querySelectorAll('.game-notice').forEach(el => el.remove());
+  const el = document.createElement('div');
+  el.className = 'game-notice';
+  el.innerHTML = n.html;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => { el.remove(); playNextNotice(); }, 300); }, n.ms);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden){ noticeShowing = false; noticeQueue.length = 0; document.querySelectorAll('.game-notice').forEach(el => el.remove()); }
+});
+let lastLogSeen = null;
+// 카드 뽑기 / 방어 / 점프·전환 결과는 더 자세한 알림이 따로 있어서 여기서는 건너뛰어요
+const SKIP_LOG = /카드를 뽑았어요$|방어 카드로 .*막았어요$|건너뛰어질 예정|반대로 바뀔 예정/;
+function checkLogToasts(){
+  const log = GRP().log || [];
+  const maxId = log.reduce((mx, e) => Math.max(mx, e.id || 0), 0);
+  if (lastLogSeen === null){ lastLogSeen = maxId; return; }
+  if (maxId < lastLogSeen){ lastLogSeen = maxId; return; } // 되돌리기 등으로 번호가 줄어든 경우
+  const fresh = log.filter(e => (e.id || 0) > lastLogSeen);
+  if (!fresh.length) return;
+  lastLogSeen = maxId;
+  fresh.filter(e => serverNow() - e.ts < 15000 && !SKIP_LOG.test(e.text || '')).slice(-4).forEach(e => pushNotice(formatLog(e)));
+}
+
+// ======================================================
+// 결과 화면: 모두 모름 / 오답 많은 문제를 슬라이드로 (관리자 화면과 같은 기능)
+// ======================================================
+function qStatList(kind){
+  return Object.entries(GRP().qstats || {})
+    .map(([qid, s]) => ({ qid, text: s.text || '(문제 내용 없음)', count: s[kind] || 0 }))
+    .filter(r => r.count > 0)
+    .sort((a, b) => b.count - a.count || String(a.text).localeCompare(String(b.text), 'ko'));
+}
+let statSlide = null;
+function openStatSlides(kind){
+  const items = qStatList(kind);
+  if (!items.length){ showToast('기록이 없어요'); return; }
+  statSlide = { kind, items, i: 0 };
+  document.addEventListener('keydown', statSlideKey);
+  renderStatSlide();
+}
+function renderStatSlide(){
+  if (!statSlide) return;
+  let el = document.getElementById('statSlide');
+  if (!el){ el = document.createElement('div'); el.id = 'statSlide'; el.className = 'slide-overlay'; document.body.appendChild(el); }
+  const { kind, items, i } = statSlide, it = items[i];
+  const title = kind === 'unknown' ? '모두 모름 문제' : '오답 많은 문제';
+  el.innerHTML = `
+    <div class="slide-top"><div class="ttl">${esc(META().className)} · ${title}</div>
+      <div style="display:flex; gap:8px;"><button class="btn btn-small" onclick="statSlideFullscreen()">전체화면</button><button class="btn btn-small" onclick="closeStatSlide()">닫기 ✕</button></div></div>
+    <div class="slide-body"><div class="slide-rank">${i + 1}위</div><div class="slide-q">${esc(it.text)}</div><div class="slide-count ${kind}">${it.count}회</div></div>
+    <div class="slide-nav"><button onclick="statSlideGo(-1)" ${i === 0 ? 'disabled' : ''}>◀</button><div class="pg">${i + 1} / ${items.length}</div><button onclick="statSlideGo(1)" ${i === items.length - 1 ? 'disabled' : ''}>▶</button></div>`;
+}
+function statSlideGo(d){ if (!statSlide) return; statSlide.i = Math.min(statSlide.items.length - 1, Math.max(0, statSlide.i + d)); renderStatSlide(); }
+function statSlideKey(e){
+  if (!statSlide) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' '){ e.preventDefault(); statSlideGo(1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); statSlideGo(-1); }
+  else if (e.key === 'Escape') closeStatSlide();
+}
+function statSlideFullscreen(){
+  const el = document.getElementById('statSlide');
+  if (!document.fullscreenElement){ if (el && el.requestFullscreen) el.requestFullscreen(); } else document.exitFullscreen();
+}
+function closeStatSlide(){
+  document.removeEventListener('keydown', statSlideKey);
+  if (document.fullscreenElement) document.exitFullscreen();
+  const el = document.getElementById('statSlide'); if (el) el.remove();
+  statSlide = null;
+}
+
 function onKey(e){
+  if (statSlide) return;
   if (document.querySelector('.modal-overlay')){ if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(x => x.remove()); return; }
   if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
   if (!game || !game.meta || game.meta.mode !== 'team' || game.meta.status !== 'playing') return;
@@ -585,7 +731,7 @@ function onKey(e){
 function onData(){
   if (!game){ app.innerHTML = msgScreen('게임을 찾을 수 없어요'); return; }
   if (!game.meta || game.meta.mode !== 'team'){ app.innerHTML = msgScreen('모둠 간 경쟁 게임이 아니에요'); return; }
-  detectEvents(); render(); scheduleWork();
+  detectEvents(); checkLogToasts(); render(); scheduleWork();
 }
 function startBoard(){
   db.ref('games/' + gameId).on('value', snap => { game = snap.val(); onData(); });

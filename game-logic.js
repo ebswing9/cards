@@ -80,7 +80,8 @@ const DEFAULT_CARD_CONFIG = {
 };
 
 // 모둠 간 경쟁 모드에서 팀을 구분하는 색
-const TEAM_COLORS = ['#4A72A8','#D2506B','#2E9C78','#D98E00','#7B5BD0','#2F9BB8','#C8643A','#5B6B7C'];
+// (카드 색과 구분되도록 주황·청록·노랑·갈색·연두·먹색을 써요)
+const TEAM_COLORS = ['#F26B21','#0E94B3','#F2B705','#8B5E3C','#7CB518','#3D4A5C'];
 
 const DEFENSE_WINDOW_MS = 8000;
 const JUDGE_CANCEL_MS = 3000; // 기본값 (게임 만들 때 관리자가 바꿀 수 있어요)
@@ -219,6 +220,25 @@ function applyEndTurn(group){
     group.turnsTaken[group.currentPlayerId] = (group.turnsTaken[group.currentPlayerId] || 0) + 1;
   }
 
+  // 모둠 간 경쟁: 카드가 다 떨어졌는데 아직 턴을 덜 한 팀이 있으면, 예비 카드로 그 팀들만 마저 진행해요
+  if (group.teamMode && (!group.deck || group.deck.length === 0) && !(group.finalRound && group.finalRound.active)){
+    const taken = group.turnsTaken || {};
+    const max = Math.max(0, ...order.map(id => taken[id] || 0));
+    const n = order.length;
+    const dirNext = (group.direction || 1) * (group.pendingFlip ? -1 : 1);
+    const start = Math.max(0, order.indexOf(group.judgeId));
+    const seq = [];
+    for (let i = 0; i < n; i++) seq.push(order[(((start + i * dirNext) % n) + n) % n]);
+    const need = seq.filter(id => (taken[id] || 0) < max);
+    if (need.length > 0 && group.reserve && group.reserve.length > 0){
+      group.deck = group.reserve;
+      group.reserve = null;
+      group.finalRound = { active: true, queue: need };
+      group.finalReason = 'deck';
+      pushLog(group, '카드가 다 떨어졌어요! 예비 카드로 마지막 한 바퀴를 진행해요');
+    }
+  }
+
   let direction = group.direction || 1;
   let newCurrent, newJudge;
 
@@ -230,6 +250,7 @@ function applyEndTurn(group){
       group.challenge = null; group.pendingSkip = false; group.pendingFlip = false;
       group.finalRound = { active: true, queue: [] };
       group.phase = 'ended';
+      group.endReason = group.finalReason || 'time';
       pushLog(group, '마지막 한 바퀴가 끝났어요!');
       return group;
     }
@@ -261,6 +282,10 @@ function applyEndTurn(group){
   group.turnNumber = (group.turnNumber || 0) + 1;
   group.turnStartedAt = now;
   group.phase = (group.deck && group.deck.length > 0) ? 'pre_turn' : 'ended';
+  if (group.phase === 'ended'){
+    group.endReason = 'deck'; // 카드가 모두 소진되어 끝남
+    pushLog(group, '카드가 모두 소진되어 게임이 끝났어요');
+  }
   return group;
 }
 
