@@ -80,8 +80,8 @@ const DEFAULT_CARD_CONFIG = {
 };
 
 // 모둠 간 경쟁 모드에서 팀을 구분하는 색
-// (카드 색과 구분되도록 주황·청록·노랑·갈색·연두·먹색을 써요)
-const TEAM_COLORS = ['#F26B21','#0E94B3','#F2B705','#8B5E3C','#7CB518','#3D4A5C'];
+// (파스텔: 라벤더·핑크·피치·버터·하늘·연두·민트·코랄 — 최대 8팀)
+const TEAM_COLORS = ['#B7B1F2','#FDB7EA','#FFDCCC','#FBF3B9','#B5DFF7','#C8EBB6','#B3EBDD','#FFB8B0'];
 
 const DEFENSE_WINDOW_MS = 8000;
 const JUDGE_CANCEL_MS = 3000; // 기본값 (게임 만들 때 관리자가 바꿀 수 있어요)

@@ -16,8 +16,13 @@
   .b-clock{ font-size:44px; font-weight:900; color:var(--primary-dark); background:#fff; border-radius:999px; padding:0 30px; line-height:1.35; box-shadow:0 6px 18px rgba(118,159,205,0.22); font-variant-numeric:tabular-nums; }
   .b-clock.warn{ color:#C93049; animation:warnPulse 1s ease-in-out infinite; }
   @keyframes warnPulse{ 50%{ transform:scale(1.06); } }
-  .b-tools{ display:flex; gap:8px; }
-  .b-tools .btn{ padding:8px 16px; font-size:14px; }
+  .b-tools{ display:flex; gap:10px; }
+  .b-ib{ width:46px; height:46px; border-radius:50%; border:2px solid var(--primary-pale); background:#fff; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 12px rgba(118,159,205,0.2); transition:transform 0.12s, background 0.12s; padding:0; }
+  .b-ib:hover{ transform:translateY(-2px); background:var(--primary-tint); }
+  .b-ib:disabled{ opacity:0.38; cursor:default; transform:none; background:#fff; }
+  .b-ib svg{ width:24px; height:24px; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .b-ib.pause{ color:#B87300; background:var(--gold-tint); border-color:#F6D88A; }
+  .b-ib.muted{ color:var(--ink-soft); }
 
   /* 팀 카드: 위쪽 띠가 팀 색이에요 */
   .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; padding-top:26px; }
@@ -32,26 +37,26 @@
   .b-team .hand-chip .n{ min-width:22px; height:22px; font-size:12px; top:-8px; right:-8px; }
   .b-team .hand-chip .use-tag{ font-size:10.5px; padding:1px 8px; }
   /* 현재 차례: 팀 색으로 발광 */
-  .b-team.current{ border-color:var(--tc); animation:teamGlow 1.4s ease-in-out infinite; transform:translateY(-3px); }
+  .b-team.current{ border-color:var(--td); animation:teamGlow 1.4s ease-in-out infinite; transform:translateY(-3px); }
   @keyframes teamGlow{
     0%,100%{ box-shadow:0 0 8px 1px var(--tg), 0 6px 16px rgba(0,0,0,0.06); }
     50%{ box-shadow:0 0 28px 9px var(--tg2), 0 6px 16px rgba(0,0,0,0.06); }
   }
-  .b-turn-tag{ position:absolute; top:-26px; left:50%; transform:translateX(-50%); z-index:2; background:var(--tc); color:var(--on); font-family:'Pretendard',sans-serif; font-weight:800; font-size:14px; padding:2px 16px; border-radius:999px; border:3px solid #fff; white-space:nowrap; }
-  .b-team.pickable{ cursor:pointer; border-color:var(--tc); animation:pickPulse 1s ease-in-out infinite; }
+  .b-turn-tag{ position:absolute; top:-26px; left:50%; transform:translateX(-50%); z-index:2; background:var(--td); color:#fff; font-family:'Pretendard',sans-serif; font-weight:800; font-size:14px; padding:2px 16px; border-radius:999px; border:3px solid #fff; white-space:nowrap; }
+  .b-team.pickable{ cursor:pointer; border-color:var(--td); animation:pickPulse 1s ease-in-out infinite; }
   .b-team.pickable:hover{ transform:translateY(-4px) scale(1.02); }
   @keyframes pickPulse{ 0%,100%{ box-shadow:0 0 0 0 var(--tg2); } 50%{ box-shadow:0 0 0 12px rgba(255,255,255,0); } }
   .b-chip{ display:inline-block; padding:0 22px; border-radius:999px; margin:0 4px; line-height:1.4; }
 
   /* 가운데 무대 */
   .b-stage{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:14px 0; text-align:center; min-height:0; }
-  .b-stage .center-card.is-question{ width:min(1100px,92%); margin-top:34px; margin-bottom:6px; }
-  .b-stage .qpaper{ min-height:120px; }
-  .b-stage .qpaper .qtext{ font-size:clamp(30px,3.3vw,58px); line-height:1.5; }
+  .b-stage .center-card.is-question{ width:min(1240px,94%); margin-top:36px; margin-bottom:8px; }
+  .b-stage .qpaper{ min-height:clamp(170px,21vh,250px); padding:34px 28px 30px; }
+  .b-stage .qpaper .qtext{ font-size:clamp(36px,4vw,72px); line-height:1.5; }
   .b-stage .center-card.is-question .type-tag{ font-size:clamp(16px,1.4vw,22px); }
   .b-line{ font-size:clamp(26px,2.6vw,44px); font-weight:900; color:var(--ink); }
   .b-sub{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:clamp(16px,1.3vw,22px); color:var(--ink-soft); }
-  .b-draw{ font-family:var(--font-main); font-size:clamp(26px,2.3vw,38px); padding:12px 50px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
+  .b-draw{ font-family:var(--font-main); font-weight:700; font-size:clamp(26px,2.3vw,38px); padding:12px 50px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
   .b-draw:active{ transform:scale(0.96); }
   body.board .deck-pile{ height:130px; width:140px; margin:0 auto; }
   body.board .deck-pile .card-back{ width:88px; height:124px; }
@@ -61,15 +66,23 @@
   .b-judge .j-no{ background:linear-gradient(155deg,#FF8095,#E8465F); box-shadow:0 6px 16px rgba(232,70,95,0.35); }
   .b-judge .j-unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); box-shadow:0 6px 16px rgba(110,129,150,0.3); }
   .b-judge .j-pass{ background:#fff; color:#2E9C78; border:3px solid #2E9C78; min-width:0; }
-  .b-pending{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(20px,1.8vw,28px); background:#fff; border-radius:20px; padding:12px 28px; box-shadow:0 8px 22px rgba(118,159,205,0.22); display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .b-pending{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(14px,1.15vw,18px); background:#fff; border-radius:16px; padding:8px 20px; box-shadow:0 8px 22px rgba(118,159,205,0.22); display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .b-pending .btn{ padding:5px 16px; font-size:13px; }
   .b-timer{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:4px 18px; border-radius:999px; background:#fff; color:var(--primary-dark); }
   .b-timer.over{ background:#E8465F; color:#fff; animation:warnPulse 0.8s ease-in-out infinite; }
   .b-pickrow{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
-  .b-pickrow button{ font-family:var(--font-main); font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.12); }
+  .b-pickrow button{ font-family:var(--font-main); font-weight:700; font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.12); }
   .b-pickrow button:hover{ transform:translateY(-3px); }
   .b-pickrow button.skip{ background:#fff; border-color:var(--ink-soft); color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; box-shadow:none; }
-  .b-act{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:22px; padding:12px 28px; border-radius:18px; border:none; color:#fff; cursor:pointer; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 6px 16px rgba(74,114,168,0.35); }
-  .b-act:disabled{ opacity:0.4; cursor:default; box-shadow:none; }
+  .b-slide{ display:flex; align-items:center; gap:14px; font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; color:var(--primary-dark); background:#fff; border:2px solid var(--primary-pale); border-radius:20px; padding:12px 18px 12px 14px; cursor:pointer; box-shadow:0 6px 16px rgba(118,159,205,0.2); transition:transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
+  .b-slide:hover{ transform:translateY(-3px); border-color:#8FB6E4; box-shadow:0 10px 22px rgba(118,159,205,0.3); }
+  .b-slide .ic{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .b-slide .ic svg{ width:26px; height:26px; stroke:#fff; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; fill:none; }
+  .b-slide .ic.unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); }
+  .b-slide .ic.inc{ background:linear-gradient(155deg,#FF8095,#E8465F); }
+  .b-slide .ct{ background:var(--primary-tint); color:var(--primary-dark); border-radius:999px; padding:2px 12px; font-size:16px; }
+  .b-slide .go{ font-size:22px; color:#8FB6E4; }
+  .b-slide:disabled{ opacity:0.45; cursor:default; transform:none; box-shadow:none; border-color:var(--line); }
   .b-def{ display:flex; flex-direction:column; gap:12px; align-items:center; }
   .b-def-row{ display:flex; gap:14px; align-items:center; background:#fff; border-radius:20px; padding:10px 22px; font-size:clamp(20px,1.8vw,28px); font-weight:900; box-shadow:0 6px 16px rgba(118,159,205,0.18); }
   .b-def-row button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:8px 22px; border-radius:14px; border:none; cursor:pointer; color:#fff; }
@@ -88,10 +101,10 @@
   .b-rank-row{ display:flex; align-items:center; gap:22px; background:#fff; border-radius:24px; padding:6px 30px 6px 0; overflow:hidden; box-shadow:0 8px 20px rgba(118,159,205,0.2); }
   .b-rank-row .bar{ align-self:stretch; width:18px; background:var(--tc); }
   .b-rank-row .rk{ font-size:clamp(30px,3vw,50px); font-weight:900; width:110px; white-space:nowrap; color:var(--ink); }
-  .b-rank-row .nm{ flex:1; text-align:left; font-size:clamp(24px,2.3vw,40px); font-weight:900; line-height:1.25; }
+  .b-rank-row .nm{ flex:1; text-align:left; font-size:clamp(24px,2.3vw,40px); font-weight:400; line-height:1.25; }
   .b-rank-row .sc{ font-size:clamp(30px,3vw,50px); font-weight:900; color:var(--ink); white-space:nowrap; }
   .b-rank-row .st{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:16px; color:var(--ink-soft); }
-  .b-rank-row.first{ background:linear-gradient(160deg,#fff,var(--gold-tint)); }
+  .b-rank-row.first{ background:linear-gradient(160deg,#fff,#E2EEFB); box-shadow:0 0 0 3px #8FB6E4, 0 10px 24px rgba(74,114,168,0.25); }
 
   /* 알림(토스트)은 팀 카드 아래쪽에 */
   body.board .game-notice{ top:clamp(300px,34vh,420px); max-width:min(90vw,720px); font-size:clamp(20px,1.6vw,28px); padding:16px 34px; }
@@ -114,8 +127,8 @@
     .b-stage{ gap:10px; padding:6px 0; }
     .b-line{ font-size:clamp(22px,3.4vh,36px); }
     .b-stage .center-card.is-question{ margin-top:26px; }
-    .b-stage .qpaper{ min-height:80px; padding:16px 14px 14px; }
-    .b-stage .qpaper .qtext{ font-size:clamp(26px,4.2vh,46px); }
+    .b-stage .qpaper{ min-height:120px; padding:22px 18px 20px; }
+    .b-stage .qpaper .qtext{ font-size:clamp(28px,5vh,54px); }
     body.board .deck-pile{ height:96px; } body.board .deck-pile .card-back{ width:66px; height:94px; }
     .b-clock{ font-size:34px; }
     .b-log{ min-height:34px; font-size:14px; }
@@ -125,14 +138,51 @@
     .b-team-head{ font-size:19px; padding:3px 8px; }
     .b-score{ font-size:clamp(32px,5.4vh,46px); }
     .b-team .hand-chip{ width:52px; } .b-team .hand-chip .ico{ height:24px; } .b-team .hand-chip .lb{ font-size:11px; }
-    .b-stage .qpaper{ min-height:64px; }
-    .b-stage .qpaper .qtext{ font-size:clamp(22px,4vh,34px); }
+    .b-stage .qpaper{ min-height:92px; padding:16px 14px 14px; }
+    .b-stage .qpaper .qtext{ font-size:clamp(24px,4.8vh,40px); }
     .b-line{ font-size:clamp(20px,3.2vh,28px); }
     .b-sub{ font-size:14px; }
     body.board .deck-pile{ height:76px; } body.board .deck-pile .card-back{ width:52px; height:74px; }
     .b-log div:nth-child(n+3){ display:none; }
     .b-clock{ font-size:28px; }
   }
+
+  /* 5팀 이상: 한 줄에 다 들어가도록 작은 카드로 */
+  .b-teams.many{ grid-template-columns:repeat(var(--n),minmax(0,1fr)); gap:10px; }
+  .b-teams.many .b-team{ padding:0 8px 10px; border-radius:20px; }
+  .b-teams.many .b-team-head{ margin:-4px -12px 4px; font-size:clamp(15px,1.35vw,24px); padding:6px 4px; border-radius:16px 16px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .b-teams.many .b-score{ font-size:clamp(34px,3.4vw,58px); }
+  .b-teams.many .b-chips{ display:grid; grid-template-columns:repeat(2,1fr); justify-items:center; gap:7px 4px; }
+  .b-teams.many .hand-chip{ width:min(100%,58px); }
+  .b-teams.many .hand-chip .use-tag{ font-size:9.5px; padding:1px 6px; }
+  @media (max-height:960px){
+    .b-teams.many .hand-chip{ width:min(100%,48px); padding:2px 2px 3px; }
+    .b-teams.many .hand-chip .ico{ height:22px; margin-bottom:1px; }
+    .b-teams.many .hand-chip .lb{ display:none; }
+    .b-teams.many .b-score{ font-size:clamp(30px,5vh,46px); }
+    .b-rank{ gap:5px; }
+    .b-rank-row{ padding:3px 24px 3px 0; }
+    .b-rank-row .rk{ font-size:clamp(24px,3.4vh,36px); width:84px; }
+    .b-rank-row .nm{ font-size:clamp(20px,3vh,30px); }
+    .b-rank-row .sc{ font-size:clamp(24px,3.4vh,36px); }
+    .b-rank-row .st{ font-size:13px; }
+    .b-slide{ padding:8px 14px 8px 10px; font-size:17px; }
+    .b-slide .ic{ width:36px; height:36px; }
+  }
+  @media (max-height:800px){
+    .b-rank-row .st{ display:none; }
+    .b-stage .b-sub{ font-size:13px; }
+  }
+
+  .b-teams.many ~ .b-stage{ gap:10px; }
+  .b-teams.many ~ .b-stage .qpaper{ min-height:clamp(140px,17vh,200px); padding:26px 24px 24px; }
+  .b-rank.many .b-rank-row{ padding:3px 24px 3px 0; }
+  .b-rank.many .b-rank-row .rk{ font-size:clamp(26px,3.4vh,40px); width:96px; }
+  .b-rank.many .b-rank-row .nm{ font-size:clamp(22px,3vh,32px); }
+  .b-rank.many .b-rank-row .sc{ font-size:clamp(26px,3.4vh,40px); }
+  @media (max-height:780px){ .b-teams.many ~ .b-stage .b-sub{ display:none; } }
+
+  @media (max-height:780px){ .b-pickrow{ gap:8px; } .b-pickrow button{ padding:7px 16px; font-size:19px; border-width:3px; } .b-pickrow button.skip{ font-size:15px; } .b-stage .center-card.is-question{ margin-top:22px; } }
 </style>
 </head>
 <body class="board">
@@ -168,6 +218,7 @@ function lum(hex){
 }
 const onColor = hex => lum(hex) > 0.34 ? '#2C3E50' : '#FFFFFF';
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
+function deep(hex, f){ f = f || 0.6; const n = parseInt(hex.slice(1), 16); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * f).toString(16).padStart(2, '0')).join(''); }
 function chip(id){ const c = tColor(id); return `<span class="b-chip" style="background:${c};color:${onColor(c)}">${esc(tName(id))}</span>`; }
 function msgScreen(text){ return `<div class="center-screen"><div class="card-box"><h2>${esc(text)}</h2></div></div>`; }
 
@@ -263,7 +314,7 @@ function detectEvents(){
     draw: (g.lastDraw || {}).ts || 0, effect: (g.lastEffect || {}).ts || 0,
     phase: g.phase, pjResult: (g.pendingJudge || {}).result || null, pjDeadline: (g.pendingJudge || {}).deadline || 0, status: m.status
   };
-  if (!seen){ seen = cur; return; }
+  if (!seen){ seen = cur; if (cur.phase === 'ended' || cur.status === 'ended') setTimeout(launchConfetti, 500); return; }
   if (cur.silence && cur.silence !== seen.silence){
     sfx('silence');
     playFx('silence', '쉿… 침묵 카드!', `${esc(ga(tName(g.lastSilence.playerId)))} 침묵 카드를 뽑아서<br>이번 턴은 쉬어요`, 3600);
@@ -287,8 +338,49 @@ function detectEvents(){
   if (seen.phase === 'judge_pending' && cur.phase !== 'judge_pending' && serverNow() >= seen.pjDeadline - 400){
     sfx(seen.pjResult === 'correct' ? 'correct' : seen.pjResult === 'incorrect' ? 'wrong' : 'unknown');
   }
-  if (cur.phase === 'ended' && seen.phase !== 'ended') sfx('end');
+  if (cur.phase === 'ended' && seen.phase !== 'ended'){ sfx('end'); launchConfetti(); }
   seen = cur;
+}
+function launchConfetti(){
+  const old = document.getElementById('confettiCv'); if (old) old.remove();
+  const cv = document.createElement('canvas');
+  cv.id = 'confettiCv';
+  cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:98;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, s = H / 1080;
+  const colors = ['#B7B1F2', '#FDB7EA', '#FFDCCC', '#FBF3B9', '#B5DFF7', '#C8EBB6', '#FFC83D', '#8FB6E4', '#FF8095'];
+  const parts = [];
+  const rnd = (a, b2) => a + Math.random() * (b2 - a);
+  function burst(side, n){
+    for (let i = 0; i < n; i++){
+      const ang = rnd(-1.35, -0.55);                    // 위로 비스듬히 (라디안)
+      const sp = rnd(16, 30) * s;
+      const dir = side === 'L' ? 1 : -1;
+      parts.push({ x: side === 'L' ? -10 : W + 10, y: H * rnd(0.72, 0.95), vx: Math.cos(ang) * sp * dir * -1 * -1, vy: Math.sin(ang) * sp,
+        size: rnd(9, 18) * Math.max(0.7, s), rot: rnd(0, 6.28), vr: rnd(-0.25, 0.25), color: colors[(Math.random() * colors.length) | 0],
+        shape: Math.random() < 0.3 ? 'c' : 'r', life: 0, max: rnd(150, 230) });
+      parts[parts.length - 1].vx = Math.abs(parts[parts.length - 1].vx) * dir;
+    }
+  }
+  [0, 450, 950].forEach(t => setTimeout(() => { burst('L', 45); burst('R', 45); }, t));
+  const t0 = performance.now();
+  (function frame(now){
+    ctx.clearRect(0, 0, W, H);
+    let alive = 0;
+    parts.forEach(p => {
+      p.life++; if (p.life > p.max) return; alive++;
+      p.vy += 0.45 * s; p.vx *= 0.985; p.vy *= 0.992;
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(1, (p.max - p.life) / 40);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'c'){ ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, 6.28); ctx.fill(); }
+      else ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      ctx.restore();
+    });
+    if ((alive > 0 || now - t0 < 1500) && now - t0 < 7000) requestAnimationFrame(frame); else cv.remove();
+  })(t0);
 }
 function tickSounds(){
   if (!game || !game.meta || game.meta.status !== 'playing') return;
@@ -467,10 +559,11 @@ function pickableSet(){
 function teamsHtml(){
   const g = GRP(), pick = pickableSet();
   const live = META().status === 'playing' || META().status === 'paused';
-  return `<div class="b-teams">${teamIds().map(id => {
+  const nT = teamIds().length;
+  return `<div class="b-teams ${nT > 4 ? 'many' : ''}" style="--n:${nT}">${teamIds().map(id => {
     const cur = live && g.phase !== 'ended' && g.currentPlayerId === id;
     const c = tColor(id), sc = handScore(handOf(id));
-    return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${c};--on:${onColor(c)};--tg:${rgba(c, 0.55)};--tg2:${rgba(c, 0.95)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
+    return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${c};--on:${onColor(c)};--td:${deep(c)};--tg:${rgba(deep(c), 0.5)};--tg2:${rgba(deep(c), 0.9)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
       ${cur ? '<div class="b-turn-tag">지금 차례</div>' : ''}
       <div class="b-team-head">${esc(tName(id))}</div>
       <div class="b-score">${sc}<small>점</small></div>
@@ -560,7 +653,7 @@ function rankingHtml(){
   const rows = teamIds().map(id => ({ id, score: handScore(handOf(id)), st: (g.stats || {})[id] || {}, turns: (g.turnsTaken || {})[id] || 0 }))
     .sort((a, b) => b.score - a.score);
   let rank = 0, prev = null;
-  return `<div class="b-rank">${rows.map((r, i) => {
+  return `<div class="b-rank ${rows.length > 4 ? 'many' : ''}">${rows.map((r, i) => {
     if (r.score !== prev){ rank = i + 1; prev = r.score; }
     return `<div class="b-rank-row ${rank === 1 ? 'first' : ''}" style="--tc:${tColor(r.id)}"><div class="bar"></div>
       <div class="rk">${rank}위</div><div class="nm">${esc(tName(r.id))}<div class="st">턴 ${r.turns}번 · 강탈 성공 ${r.st.steals || 0}회 · 강탈당함 ${r.st.stolen || 0}회</div></div><div class="sc">${r.score}점</div></div>`;
@@ -569,14 +662,20 @@ function rankingHtml(){
 // 결과 화면의 '문제별 슬라이드' 버튼 (관리자 화면의 것과 같아요)
 function resultActionsHtml(){
   const u = qStatList('unknown').length, w = qStatList('incorrect').length;
-  return `<div class="b-pickrow">
-    <button class="b-act" ${u ? `onclick="openStatSlides('unknown')"` : 'disabled'}>모두 모름 문제 슬라이드로 보기${u ? ' (' + u + ')' : ''}</button>
-    <button class="b-act" ${w ? `onclick="openStatSlides('incorrect')"` : 'disabled'}>오답 많은 문제 슬라이드로 보기${w ? ' (' + w + ')' : ''}</button></div>`;
+  const icQ = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.5-1.2 1-1.2 1.9"/><circle cx="12" cy="17" r=".6" fill="#fff"/></svg>';
+  const icX = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
+  const btn = (kind, n, cls, ic, label) => `<button class="b-slide" ${n ? `onclick="openStatSlides('${kind}')"` : 'disabled'}>
+      <span class="ic ${cls}">${ic}</span><span>${label}</span>${n ? `<span class="ct">${n}문제</span><span class="go">›</span>` : '<span class="ct">없음</span>'}</button>`;
+  return `<div class="b-pickrow">${btn('unknown', u, 'unk', icQ, '모두 모름 문제 슬라이드로 보기')}${btn('incorrect', w, 'inc', icX, '오답 많은 문제 슬라이드로 보기')}</div>`;
 }
 function endReasonText(){
   const r = GRP().endReason;
   return r === 'deck' ? '카드가 모두 소진되어 게임이 끝났어요' : r === 'time' ? '시간이 끝나 마지막 한 바퀴까지 마쳤어요' : '';
 }
+const ICON_UNDO = '<svg viewBox="0 0 24 24" fill="none"><polyline points="2 4 2 10 8 10"/><path d="M4.2 15a9 9 0 1 0 2.1-9.4L2 10"/></svg>';
+const ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.8 5.2a9.5 9.5 0 0 1 0 13.6"/></svg>';
+const ICON_MUTE = '<svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4V5z"/><line x1="16" y1="9.5" x2="21.5" y2="15"/><line x1="21.5" y1="9.5" x2="16" y2="15"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1.6" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1.6" fill="currentColor" stroke="none"/></svg>';
 function topHtml(){
   const m = META(), rem = clockMs();
   const cls = (m.status === 'playing' && rem <= 60000) ? 'warn' : '';
@@ -585,9 +684,9 @@ function topHtml(){
     <div class="b-title">국어누리게임 · ${esc(m.className)}</div>
     <div class="b-clock ${cls}">${formatClock(rem)}</div>
     <div class="b-tools">
-      ${live ? `<button class="btn btn-ghost" onclick="doUndo()" ${GRP().undo ? '' : 'disabled style="opacity:.45"'}>되돌리기 (U)</button>` : ''}
-      <button class="btn btn-ghost" onclick="toggleMute()">소리 ${muted ? '꺼짐' : '켜짐'} (M)</button>
-      ${m.status === 'playing' ? '<button class="btn btn-amber" onclick="doPause()">일시정지</button>' : ''}
+      ${live ? `<button class="b-ib" title="되돌리기" aria-label="되돌리기" onclick="doUndo()" ${GRP().undo ? '' : 'disabled'}>${ICON_UNDO}</button>` : ''}
+      <button class="b-ib ${muted ? 'muted' : ''}" title="${muted ? '소리 켜기' : '소리 끄기'}" aria-label="소리" onclick="toggleMute()">${muted ? ICON_MUTE : ICON_SOUND}</button>
+      ${m.status === 'playing' ? `<button class="b-ib pause" title="일시정지" aria-label="일시정지" onclick="doPause()">${ICON_PAUSE}</button>` : ''}
     </div></div>`;
 }
 function footHtml(){

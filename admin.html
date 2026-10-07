@@ -623,7 +623,7 @@ function renderCreateForm(){
         <tr><td>문제 세트</td><td><select id="createSetSelect" style="width:100%;"></select></td></tr>
         <tr><td>게임 시간(분)</td><td><input type="number" id="createDuration" value="15" style="width:100px;"></td></tr>
         <tr id="rowGroupCount"><td>모둠 수</td><td><input type="number" id="createGroupCount" value="4" style="width:100px;"></td></tr>
-        <tr id="rowTeamCount" style="display:none"><td>팀(모둠) 수</td><td><input type="number" id="createTeamCount" value="4" min="2" max="6" style="width:100px;"> <span class="hint">2~6팀</span></td></tr>
+        <tr id="rowTeamCount" style="display:none"><td>팀(모둠) 수</td><td><input type="number" id="createTeamCount" value="4" min="2" max="8" style="width:100px;"> <span class="hint">2~8팀</span></td></tr>
         <tr id="rowTeamNames" style="display:none"><td>팀 이름</td><td><input type="text" id="createTeamNames" placeholder="쉼표로 구분 (비우면 1모둠, 2모둠, …)" style="width:100%;"></td></tr>
         <tr id="rowChallenge" style="display:none"><td>도전 규칙</td><td><label><input type="checkbox" id="createChallenge" checked> 오답이면 다른 팀이 도전할 수 있어요</label> <span class="hint">도전할 팀은 선생님이 고르고, 도전 팀도 틀리면 또 다른 팀을 고를 수 있어요</span></td></tr>
         <tr id="rowTurnTimer" style="display:none"><td>턴 타이머</td><td><select id="createTurnTimer"><option value="0">끔</option><option value="60">60초</option><option value="90">90초</option></select> <span class="hint">칠판에 경고만 보여줘요 (자동으로 넘어가지는 않아요)</span></td></tr>
@@ -698,7 +698,7 @@ async function submitCreateGame(){
   const durationMinutes = Number(document.getElementById('createDuration').value) || 15;
   const mode = document.querySelector('input[name=gameMode]:checked').value;
   const isTeam = mode === 'team';
-  const teamCount = Math.max(2, Math.min(6, Number(document.getElementById('createTeamCount').value) || 4));
+  const teamCount = Math.max(2, Math.min(8, Number(document.getElementById('createTeamCount').value) || 4));
   const teamNames = document.getElementById('createTeamNames').value.split(',').map(s => s.trim()).filter(Boolean);
   const challengeEnabled = document.getElementById('createChallenge').checked;
   const turnTimerSec = Number(document.getElementById('createTurnTimer').value) || 0;
@@ -752,7 +752,7 @@ function renderTeamLobby(g){
     <div class="section">
       <div class="section-title">참가 팀 (자리 순서 = 진행 순서)</div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        ${ids.map(id => `<span class="chip" style="font-size:15px; padding:6px 16px; border:2px solid ${teams[id].color};">${teams[id].number}번 ${escapeHtml(teams[id].name)}</span>`).join('')}
+        ${ids.map(id => `<span class="chip" style="font-size:15px; padding:6px 16px; background:${teams[id].color}; color:#2C3E50;">${teams[id].number}번 ${escapeHtml(teams[id].name)}</span>`).join('')}
       </div>
       <div class="hint" style="margin-top:10px;">도전 규칙 ${g.meta.challengeEnabled ? '켜짐' : '꺼짐'} · 턴 타이머 ${g.meta.turnTimerSec ? g.meta.turnTimerSec + '초' : '끔'} · 판정 취소 ${g.meta.judgeCancelSec != null ? g.meta.judgeCancelSec : 3}초</div>
     </div>
