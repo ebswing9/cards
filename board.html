@@ -16,13 +16,15 @@
   .b-clock{ font-size:44px; font-weight:900; color:var(--primary-dark); background:#fff; border-radius:999px; padding:0 30px; line-height:1.35; box-shadow:0 6px 18px rgba(118,159,205,0.22); font-variant-numeric:tabular-nums; }
   .b-clock.warn{ color:#C93049; animation:warnPulse 1s ease-in-out infinite; }
   @keyframes warnPulse{ 50%{ transform:scale(1.06); } }
-  .b-tools{ display:flex; gap:10px; }
-  .b-ib{ width:46px; height:46px; border-radius:50%; border:2px solid var(--primary-pale); background:#fff; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 12px rgba(118,159,205,0.2); transition:transform 0.12s, background 0.12s; padding:0; }
-  .b-ib:hover{ transform:translateY(-2px); background:var(--primary-tint); }
-  .b-ib:disabled{ opacity:0.38; cursor:default; transform:none; background:#fff; }
-  .b-ib svg{ width:24px; height:24px; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .b-ib.pause{ color:#B87300; background:var(--gold-tint); border-color:#F6D88A; }
-  .b-ib.muted{ color:var(--ink-soft); }
+  .b-tools{ display:flex; gap:2px; align-items:center; background:rgba(255,255,255,0.88); border:1.5px solid var(--primary-pale); border-radius:999px; padding:3px; box-shadow:0 4px 12px rgba(118,159,205,0.16); }
+  .b-ib{ width:34px; height:34px; border-radius:50%; border:none; background:transparent; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:background 0.12s, color 0.12s, transform 0.12s; }
+  .b-ib:hover{ background:var(--primary-tint); color:var(--primary-dark); }
+  .b-ib:active{ transform:scale(0.9); }
+  .b-ib:disabled{ opacity:0.32; cursor:default; background:transparent; transform:none; }
+  .b-ib svg{ width:19px; height:19px; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .b-ib.pause{ color:#B87300; background:var(--gold-tint); margin-left:2px; }
+  .b-ib.pause:hover{ background:#FFE9A8; color:#8A5700; }
+  .b-ib.muted{ color:#B3BFCB; }
 
   /* 팀 카드: 위쪽 띠가 팀 색이에요 */
   .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; padding-top:26px; }
@@ -56,10 +58,13 @@
   .b-stage .center-card.is-question .type-tag{ font-size:clamp(16px,1.4vw,22px); }
   .b-line{ font-size:clamp(26px,2.6vw,44px); font-weight:900; color:var(--ink); }
   .b-sub{ font-family:'Pretendard',sans-serif; font-weight:700; font-size:clamp(16px,1.3vw,22px); color:var(--ink-soft); }
-  .b-draw{ font-family:var(--font-main); font-weight:700; font-size:clamp(26px,2.3vw,38px); padding:12px 50px; border:4px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
+  .b-draw{ font-family:var(--font-main); font-weight:700; font-size:clamp(18px,1.5vw,24px); padding:8px 32px; border:3px solid #fff; border-radius:999px; cursor:pointer; color:#fff; background:linear-gradient(155deg,#8FB6E4,#4A72A8); box-shadow:0 10px 24px rgba(74,114,168,0.4); }
   .b-draw:active{ transform:scale(0.96); }
-  body.board .deck-pile{ height:130px; width:140px; margin:0 auto; }
-  body.board .deck-pile .card-back{ width:88px; height:124px; }
+  body.board .deck-pile{ height:200px; width:220px; margin:6px auto; }
+  body.board .deck-pile .card-back{ width:130px; height:186px; border-radius:16px; border-width:3px; }
+  body.board .deck-pile .card-back:nth-child(1){ transform:translate(-14px,10px) rotate(-4deg); }
+  body.board .deck-pile .card-back:nth-child(2){ transform:translate(8px,3px) rotate(3deg); }
+  body.board .deck-pile .card-back:nth-child(3){ transform:translate(0,-4px) rotate(0deg); }
   .b-judge{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
   .b-judge button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:clamp(18px,1.6vw,26px); padding:10px 30px; border:none; border-radius:16px; color:#fff; cursor:pointer; min-width:150px; }
   .b-judge .j-ok{ background:linear-gradient(155deg,#43D49A,#1FA971); box-shadow:0 6px 16px rgba(31,169,113,0.35); }
@@ -74,15 +79,16 @@
   .b-pickrow button{ font-family:var(--font-main); font-weight:700; font-size:clamp(22px,2vw,32px); padding:12px 30px; border-radius:20px; border:4px solid var(--tc); cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.12); }
   .b-pickrow button:hover{ transform:translateY(-3px); }
   .b-pickrow button.skip{ background:#fff; border-color:var(--ink-soft); color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; box-shadow:none; }
-  .b-slide{ display:flex; align-items:center; gap:14px; font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; color:var(--primary-dark); background:#fff; border:2px solid var(--primary-pale); border-radius:20px; padding:12px 18px 12px 14px; cursor:pointer; box-shadow:0 6px 16px rgba(118,159,205,0.2); transition:transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
-  .b-slide:hover{ transform:translateY(-3px); border-color:#8FB6E4; box-shadow:0 10px 22px rgba(118,159,205,0.3); }
-  .b-slide .ic{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex:none; }
-  .b-slide .ic svg{ width:26px; height:26px; stroke:#fff; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; fill:none; }
-  .b-slide .ic.unk{ background:linear-gradient(155deg,#A9B9C8,#6E8196); }
-  .b-slide .ic.inc{ background:linear-gradient(155deg,#FF8095,#E8465F); }
-  .b-slide .ct{ background:var(--primary-tint); color:var(--primary-dark); border-radius:999px; padding:2px 12px; font-size:16px; }
-  .b-slide .go{ font-size:22px; color:#8FB6E4; }
-  .b-slide:disabled{ opacity:0.45; cursor:default; transform:none; box-shadow:none; border-color:var(--line); }
+  .b-slides{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+  .b-slides .b-slide{ display:inline-flex; align-items:center; gap:10px; font-family:'Pretendard',-apple-system,sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.01em;
+    border:none; border-radius:999px; padding:13px 24px 13px 20px; cursor:pointer; color:var(--sc); background:var(--sb); box-shadow:0 5px 0 var(--se); transition:transform 0.1s, box-shadow 0.1s; }
+  .b-slides .b-slide:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--se); }
+  .b-slides .b-slide:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--se); }
+  .b-slides .b-slide.unk{ --sb:#DCE9F8; --sc:#2F63A8; --se:#B5CDEB; }
+  .b-slides .b-slide.inc{ --sb:#FCDDE3; --sc:#B03A5D; --se:#F1B8C4; }
+  .b-slide svg{ width:22px; height:22px; stroke:currentColor; stroke-width:2.3; fill:none; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .b-slide .ct{ background:#fff; color:var(--sc); border-radius:999px; padding:1px 11px; font-size:15px; }
+  .b-slides .b-slide:disabled{ opacity:0.5; cursor:default; transform:none; box-shadow:0 5px 0 var(--se); }
   .b-def{ display:flex; flex-direction:column; gap:12px; align-items:center; }
   .b-def-row{ display:flex; gap:14px; align-items:center; background:#fff; border-radius:20px; padding:10px 22px; font-size:clamp(20px,1.8vw,28px); font-weight:900; box-shadow:0 6px 16px rgba(118,159,205,0.18); }
   .b-def-row button{ font-family:'Pretendard',sans-serif; font-weight:800; font-size:20px; padding:8px 22px; border-radius:14px; border:none; cursor:pointer; color:#fff; }
@@ -129,7 +135,7 @@
     .b-stage .center-card.is-question{ margin-top:26px; }
     .b-stage .qpaper{ min-height:120px; padding:22px 18px 20px; }
     .b-stage .qpaper .qtext{ font-size:clamp(28px,5vh,54px); }
-    body.board .deck-pile{ height:96px; } body.board .deck-pile .card-back{ width:66px; height:94px; }
+    body.board .deck-pile{ height:150px; width:170px; margin:2px auto; } body.board .deck-pile .card-back{ width:100px; height:144px; }
     .b-clock{ font-size:34px; }
     .b-log{ min-height:34px; font-size:14px; }
     .b-judge button{ padding:8px 26px; }
@@ -142,7 +148,7 @@
     .b-stage .qpaper .qtext{ font-size:clamp(24px,4.8vh,40px); }
     .b-line{ font-size:clamp(20px,3.2vh,28px); }
     .b-sub{ font-size:14px; }
-    body.board .deck-pile{ height:76px; } body.board .deck-pile .card-back{ width:52px; height:74px; }
+    body.board .deck-pile{ height:112px; width:130px; } body.board .deck-pile .card-back{ width:76px; height:108px; }
     .b-log div:nth-child(n+3){ display:none; }
     .b-clock{ font-size:28px; }
   }
@@ -423,7 +429,7 @@ function doJudge(result){
   const g = GRP(), m = META();
   if (g.phase !== 'awaiting_answer' && g.phase !== 'challenge_answer') return;
   if (result === 'unknown' && g.phase !== 'awaiting_answer') return;
-  const sec = m.judgeCancelSec != null ? m.judgeCancelSec : 3;
+  const sec = m.judgeCancelSec != null ? m.judgeCancelSec : 0;
   act(() => proposeJudge(gameId, GI, g.judgeId, result, sec * 1000));
 }
 function doCancelJudge(){ const g = GRP(); if (g.phase === 'judge_pending' && g.pendingJudge) cancelJudge(gameId, GI, g.pendingJudge.judgeId); }
@@ -517,6 +523,30 @@ function scheduleWork(){
 // ======================================================
 // 화면 그리기
 // ======================================================
+// 1초마다 화면 전체를 새로 그리면 버튼이 매번 새 버튼으로 교체돼서,
+// 누르는 사이에 교체되면 클릭이 사라져요. 그래서 바뀐 부분만 고쳐서 버튼을 그대로 유지해요.
+function syncAttrs(fn, tn){
+  Array.from(fn.attributes).forEach(a => { if (!tn.hasAttribute(a.name)) fn.removeAttribute(a.name); });
+  Array.from(tn.attributes).forEach(a => { if (fn.getAttribute(a.name) !== a.value) fn.setAttribute(a.name, a.value); });
+}
+function morph(from, to){
+  const f = from.childNodes, t = to.childNodes;
+  for (let i = 0; i < t.length; i++){
+    const tn = t[i], fn = f[i];
+    if (!fn){ from.appendChild(tn.cloneNode(true)); continue; }
+    if (fn.nodeType !== tn.nodeType || (fn.nodeType === 1 && fn.nodeName !== tn.nodeName)){ from.replaceChild(tn.cloneNode(true), fn); continue; }
+    if (tn.nodeType === 3){ if (fn.nodeValue !== tn.nodeValue) fn.nodeValue = tn.nodeValue; continue; }
+    if (tn.nodeType !== 1) continue;
+    syncAttrs(fn, tn);
+    morph(fn, tn);
+  }
+  while (from.childNodes.length > t.length) from.removeChild(from.lastChild);
+}
+function patchApp(html){
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  morph(app, tpl.content);
+}
 function formatLog(e){
   const name = esc(e.playerId ? tName(e.playerId) : '');
   return esc(e.text || '')
@@ -662,11 +692,10 @@ function rankingHtml(){
 // 결과 화면의 '문제별 슬라이드' 버튼 (관리자 화면의 것과 같아요)
 function resultActionsHtml(){
   const u = qStatList('unknown').length, w = qStatList('incorrect').length;
-  const icQ = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.5-1.2 1-1.2 1.9"/><circle cx="12" cy="17" r=".6" fill="#fff"/></svg>';
-  const icX = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
-  const btn = (kind, n, cls, ic, label) => `<button class="b-slide" ${n ? `onclick="openStatSlides('${kind}')"` : 'disabled'}>
-      <span class="ic ${cls}">${ic}</span><span>${label}</span>${n ? `<span class="ct">${n}문제</span><span class="go">›</span>` : '<span class="ct">없음</span>'}</button>`;
-  return `<div class="b-pickrow">${btn('unknown', u, 'unk', icQ, '모두 모름 문제 슬라이드로 보기')}${btn('incorrect', w, 'inc', icX, '오답 많은 문제 슬라이드로 보기')}</div>`;
+  const icQ = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.5-1.2 1-1.2 1.9"/><circle cx="12" cy="17.2" r=".7" fill="currentColor"/></svg>';
+  const icX = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
+  const btn = (kind, n, cls, ic, label) => `<button class="b-slide ${cls}" ${n ? `onclick="openStatSlides('${kind}')"` : 'disabled'}>${ic}<span>${label}</span><span class="ct">${n ? n + '문제' : '없음'}</span></button>`;
+  return `<div class="b-slides">${btn('unknown', u, 'unk', icQ, '모두 모름 문제 슬라이드로 보기')}${btn('incorrect', w, 'inc', icX, '오답 많은 문제 슬라이드로 보기')}</div>`;
 }
 function endReasonText(){
   const r = GRP().endReason;
@@ -716,8 +745,7 @@ function render(){
   }
   const pause = m.status === 'paused'
     ? `<div class="pause-overlay"><div class="icon">${PAUSE_SVG}</div><h2>일시정지</h2><p>남은 시간 ${formatClock(m.remainingMsAtPause)}</p><button class="btn btn-primary" style="margin-top:18px" onclick="doResume()">다시 시작</button></div>` : '';
-  app.innerHTML = `<div class="b-wrap">${body}</div>${pause}`;
-  document.querySelectorAll('.b-team.current, .b-team.pickable, .hand-chip.usable').forEach(el => { el.style.animationDelay = '-' + (Date.now() % 1400) + 'ms'; });
+  patchApp(`<div class="b-wrap">${body}</div>${pause}`);
 }
 const PAUSE_SVG = '<svg viewBox="0 0 96 96"><defs><linearGradient id="pauseG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB6E4"/><stop offset="1" stop-color="#4A72A8"/></linearGradient></defs><circle cx="48" cy="48" r="44" fill="url(#pauseG)" stroke="#fff" stroke-width="4"/><rect x="31" y="28" width="12" height="40" rx="5" fill="#fff"/><rect x="53" y="28" width="12" height="40" rx="5" fill="#fff"/></svg>';
 

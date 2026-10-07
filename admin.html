@@ -628,7 +628,7 @@ function renderCreateForm(){
         <tr id="rowChallenge" style="display:none"><td>도전 규칙</td><td><label><input type="checkbox" id="createChallenge" checked> 오답이면 다른 팀이 도전할 수 있어요</label> <span class="hint">도전할 팀은 선생님이 고르고, 도전 팀도 틀리면 또 다른 팀을 고를 수 있어요</span></td></tr>
         <tr id="rowTurnTimer" style="display:none"><td>턴 타이머</td><td><select id="createTurnTimer"><option value="0">끔</option><option value="60">60초</option><option value="90">90초</option></select> <span class="hint">칠판에 경고만 보여줘요 (자동으로 넘어가지는 않아요)</span></td></tr>
         <tr id="rowMaxPerGroup"><td>모둠별 최대 인원</td><td><input type="number" id="createMaxPerGroup" value="4" style="width:100px;"></td></tr>
-        <tr><td>판정 취소 대기(초)</td><td><input type="number" id="createJudgeCancel" value="3" min="0" max="10" style="width:100px;"> <span class="hint">판정자가 버튼을 누른 뒤 취소할 수 있는 시간</span></td></tr>
+        <tr><td>판정 취소 대기(초)</td><td><input type="number" id="createJudgeCancel" value="3" min="0" max="10" style="width:100px;" oninput="this.dataset.touched='1'"> <span class="hint">판정 버튼을 누른 뒤 취소할 수 있는 시간 (모둠 간 경쟁은 기본 0초 — 칠판의 되돌리기로 취소할 수 있어요)</span></td></tr>
         <tr><td>덱 상한(장)</td><td><input type="number" id="createDeckCap" min="0" placeholder="제한 없음" style="width:100px;"> <span class="hint">비워두면 문제를 전부 사용해요</span></td></tr>
       </table>
     </div>
@@ -667,6 +667,8 @@ function renderCreateForm(){
 
 function onModeChange(){
   const team = document.querySelector('input[name=gameMode]:checked').value === 'team';
+  const jc = document.getElementById('createJudgeCancel');
+  if (jc && !jc.dataset.touched) jc.value = team ? 0 : 3; // 직접 바꾸지 않았다면 모드에 맞는 기본값
   ['rowGroupCount','rowMaxPerGroup','sectionDeckMode'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = team ? 'none' : ''; });
   ['rowTeamCount','rowTeamNames','rowChallenge','rowTurnTimer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = team ? '' : 'none'; });
 }
@@ -706,7 +708,7 @@ async function submitCreateGame(){
   const maxPerGroup = isTeam ? teamCount : (Number(document.getElementById('createMaxPerGroup').value) || 4);
   const deckMode = isTeam ? 'random' : document.querySelector('input[name=deckMode]:checked').value;
   const jc = document.getElementById('createJudgeCancel').value;
-  const judgeCancelSec = jc === '' ? 3 : Math.max(0, Math.min(10, Number(jc) || 0));
+  const judgeCancelSec = jc === '' ? (isTeam ? 0 : 3) : Math.max(0, Math.min(10, Number(jc) || 0));
   const deckCap = Number(document.getElementById('createDeckCap').value) || null;
 
   const cardConfig = {};
