@@ -86,7 +86,7 @@ function renderCodeScreen(){
       <div class="card-box">
         <h2>${uiIcon('book',26)}국어누리게임</h2>
         <p>선생님이 알려주신 학급 코드를 입력하세요</p>
-        <input type="text" id="codeInput" inputmode="numeric" maxlength="4" placeholder="0000">
+        <input type="text" id="codeInput" inputmode="numeric" maxlength="8" placeholder="학급 코드">
         <button class="btn btn-primary btn-big" style="width:100%; margin-top:14px;" onclick="submitCode()">입장</button>
         <div id="codeError" class="hint" style="color:var(--brick); margin-top:10px;"></div>
       </div>
@@ -241,7 +241,13 @@ function attachGameListener(){
   gameListenerRef = db.ref(`games/${session.gameId}`);
   gameListenerRef.on('value', snap => {
     currentGame = snap.val();
-    if (!currentGame){ showToast('게임을 찾을 수 없어요'); clearSession(); renderCodeScreen(); return; }
+    if (!currentGame){
+      showToast('게임이 삭제됐어요');
+      if (gameListenerRef){ gameListenerRef.off(); gameListenerRef = null; }
+      session.gameId = null; saveSession();
+      tryResume();
+      return;
+    }
     route();
   });
 }

@@ -22,7 +22,7 @@
 <header>
   <h1>📖 국어누리게임 <span style="font-weight:500; color:var(--ink-soft); font-size:16px;">관리자</span></h1>
   <p>학급 · 문제 세트 · 게임 진행을 관리해요</p>
-  <button class="btn btn-ghost btn-small" style="margin-left:auto;" onclick="changeAdminPin()">PIN 변경</button>
+  <div style="margin-left:auto; display:flex; gap:8px;"><button class="btn btn-ghost btn-small" onclick="changeAdminPin()">PIN 변경</button><button class="btn btn-ghost btn-small" onclick="lockAdminNow()" title="이 컴퓨터의 로그인 기록을 지우고 잠가요">잠금</button></div>
 </header>
 
 <nav class="tabs">
@@ -159,7 +159,7 @@ function randomCode(){ return String(Math.floor(1000 + Math.random() * 9000)); }
 let adminPinMode = 'check'; // 'create' | 'check'
 
 async function initPinGate(){
-  if (sessionStorage.getItem('admin_unlocked') === '1'){
+  if (isAdminUnlocked()){
     document.getElementById('pinGate').style.display = 'none';
     return;
   }
@@ -184,12 +184,12 @@ async function submitPinGate(){
   if (adminPinMode === 'create'){
     if (val.length < 4){ document.getElementById('pinGateError').textContent = '4자리 이상으로 정해주세요'; return; }
     await setAdminPin(val);
-    sessionStorage.setItem('admin_unlocked', '1');
+    setAdminUnlocked();
     document.getElementById('pinGate').style.display = 'none';
   } else {
     const pin = await getAdminPin();
     if (val === pin){
-      sessionStorage.setItem('admin_unlocked', '1');
+      setAdminUnlocked();
       document.getElementById('pinGate').style.display = 'none';
     } else {
       document.getElementById('pinGateError').textContent = 'PIN이 맞지 않아요';
@@ -198,6 +198,11 @@ async function submitPinGate(){
 }
 document.getElementById('pinGateInput').addEventListener('keydown', e => { if (e.key==='Enter') submitPinGate(); });
 initPinGate();
+
+function lockAdminNow(){
+  if (!confirm('관리자 화면을 잠글까요?\n이 컴퓨터에서는 다음에 PIN을 다시 입력해야 해요.')) return;
+  lockAdmin(); location.reload();
+}
 
 async function changeAdminPin(){
   const cur = await getAdminPin();
@@ -238,6 +243,25 @@ function renderClassList(){
   }).join('');
 }
 
+let editingClassId = null;
+function startEditClass(){ editingClassId = selectedClassId; renderClassDetail(); const el = document.getElementById('editClassName'); if (el) el.focus(); }
+function cancelEditClass(){ editingClassId = null; renderClassDetail(); }
+function randomizeEditCode(){
+  const used = Object.entries(classes).filter(([id]) => id !== selectedClassId).map(([, c]) => String(c.code));
+  let code; do { code = randomCode(); } while (used.includes(code));
+  document.getElementById('editClassCode').value = code;
+}
+function saveClassEdit(){
+  const name = document.getElementById('editClassName').value.trim();
+  const code = document.getElementById('editClassCode').value.trim();
+  if (!name){ showToast('학급 이름을 입력해주세요'); return; }
+  if (!/^[0-9]{4,8}$/.test(code)){ showToast('코드는 숫자 4~8자리로 정해주세요'); return; }
+  if (Object.entries(classes).some(([id, c]) => id !== selectedClassId && String(c.code) === code)){ showToast('이미 다른 학급이 쓰는 코드예요'); return; }
+  db.ref('classes/' + selectedClassId).update({ name, code }).then(() => {
+    editingClassId = null; showToast('학급 정보를 수정했어요'); renderClassDetail();
+  });
+}
+
 function addClass(){
   const input = document.getElementById('newClassName');
   const name = input.value.trim();
@@ -251,7 +275,7 @@ function addClass(){
 }
 
 function selectClass(id){
-  selectedClassId = id; renderClassList(); listenRoster(id); renderClassDetail();
+  selectedClassId = id; editingClassId = null; selectedStudents = new Set(); lastPickedIdx = null; renderClassList(); listenRoster(id); renderClassDetail();
 }
 
 function listenRoster(classId){
@@ -269,26 +293,27 @@ function renderClassDetail(){
   const roster = rosters[selectedClassId] || {};
   const students = Object.entries(roster).sort((a,b) => Number(a[1].number) - Number(b[1].number));
 
-  el.innerHTML = `
+  const editing = editingClassId === selectedClassId;
+  const headerHtml = editing ? `
     <div class="detail-header">
-      <div><div class="detail-title">${escapeHtml(c.name)}</div><div class="hint">학생들이 이 코드로 입장해요</div></div>
+      <div class="edit-fields">
+        <label>학급 이름<input type="text" id="editClassName" value="${escapeHtml(c.name)}" onkeydown="if(event.key==='Enter')saveClassEdit()"></label>
+        <label>입장 코드 <span class="hint">(숫자 4~8자리)</span>
+          <span class="code-edit"><input type="text" id="editClassCode" value="${escapeHtml(String(c.code))}" inputmode="numeric" maxlength="8" onkeydown="if(event.key==='Enter')saveClassEdit()">
+          <button class="btn btn-ghost btn-small" onclick="randomizeEditCode()">랜덤으로 뽑기</button></span></label>
+      </div>
+      <div style="display:flex; gap:8px; align-self:flex-start;"><button class="btn btn-primary btn-small" onclick="saveClassEdit()">저장</button><button class="btn btn-ghost btn-small" onclick="cancelEditClass()">취소</button></div>
+    </div>` : `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(c.name)}</div><div class="hint">학생들이 이 코드로 입장해요</div>
+        <button class="btn btn-ghost btn-small" style="margin-top:8px;" onclick="startEditClass()">이름 · 코드 수정</button></div>
       <div class="code-card"><div><div class="label">입장 코드</div><div class="code">${c.code}</div></div></div>
-    </div>
+    </div>`;
+  el.innerHTML = `
+    ${headerHtml}
     <div class="section">
       <div class="section-title">명단 (${students.length}명)</div>
-      <table>
-        <thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:90px">PIN</th><th style="width:150px"></th></tr></thead>
-        <tbody>
-          ${students.map(([sid, s]) => `
-            <tr><td>${escapeHtml(s.number)}</td><td>${escapeHtml(s.name)}</td>
-            <td>${s.pin ? escapeHtml(s.pin) : '<span class="hint">미설정</span>'}</td>
-            <td class="row-actions">
-              ${s.pin ? `<button class="btn btn-ghost btn-small" onclick="handleResetPin('${sid}')">PIN 초기화</button>` : ''}
-              <button class="btn btn-danger btn-small" onclick="deleteStudent('${sid}')">삭제</button>
-            </td></tr>
-          `).join('') || '<tr><td colspan="4" class="empty-msg">등록된 학생이 없어요.</td></tr>'}
-        </tbody>
-      </table>
+      <div id="rosterBox"></div>
       <div class="inline-form">
         <input type="number" id="newStudentNumber" placeholder="번호" style="max-width:90px;">
         <input type="text" id="newStudentName" placeholder="이름">
@@ -305,6 +330,91 @@ function renderClassDetail(){
     </div>
     <div class="section"><button class="btn btn-danger" onclick="deleteClass('${selectedClassId}')">이 학급 삭제</button></div>
   `;
+  refreshRosterBox();
+}
+
+// ---------- 명단: 선택 / 전체 선택 / 선택 삭제 ----------
+let selectedStudents = new Set();
+let rosterOrder = [];
+let lastPickedIdx = null;
+
+function sortedStudents(){
+  const roster = rosters[selectedClassId] || {};
+  return Object.entries(roster).sort((a, b) => Number(a[1].number) - Number(b[1].number));
+}
+// 명단 표만 다시 그려요 (아래 '학생 추가' 입력칸에 쓰던 글자가 지워지지 않게)
+function refreshRosterBox(){
+  const box = document.getElementById('rosterBox');
+  if (!box) return;
+  const students = sortedStudents();
+  rosterOrder = students.map(([sid]) => sid);
+  selectedStudents = new Set([...selectedStudents].filter(id => rosterOrder.indexOf(id) !== -1)); // 없어진 학생은 선택에서 빼요
+  const n = selectedStudents.size, total = students.length;
+  const pinCount = students.filter(([sid, s]) => selectedStudents.has(sid) && s.pin).length;
+  box.innerHTML = `
+    <div class="roster-bar ${n ? 'on' : ''}">
+      <label class="sel-all"><input type="checkbox" class="sel-cb" id="selAll" onchange="toggleAllStudents(this.checked)" ${total ? '' : 'disabled'}> <span>전체 선택</span></label>
+      <span class="sel-count">${n ? `<b>${n}명</b> 선택됨` : '체크해서 여러 명을 한 번에 지울 수 있어요'}</span>
+      <span class="grow"></span>
+      ${n ? `<button class="btn btn-ghost btn-small" onclick="clearStudentSelection()">선택 해제</button>` : ''}
+      ${pinCount ? `<button class="btn btn-ghost btn-small" onclick="resetSelectedPins()">PIN 초기화 (${pinCount})</button>` : ''}
+      ${n ? `<button class="btn btn-danger btn-small" onclick="deleteSelectedStudents()">선택 삭제 (${n})</button>` : ''}
+    </div>
+    <table class="roster-table">
+      <thead><tr><th style="width:48px"></th><th style="width:70px">번호</th><th>이름</th><th style="width:90px">PIN</th><th style="width:150px"></th></tr></thead>
+      <tbody>
+        ${students.map(([sid, s]) => `
+          <tr class="${selectedStudents.has(sid) ? 'sel' : ''}" onclick="rowPick(event,'${sid}')">
+            <td class="cb-cell"><input type="checkbox" class="sel-cb" ${selectedStudents.has(sid) ? 'checked' : ''} onclick="rowPick(event,'${sid}')"></td>
+            <td>${escapeHtml(s.number)}</td><td>${escapeHtml(s.name)}</td>
+            <td>${s.pin ? escapeHtml(s.pin) : '<span class="hint">미설정</span>'}</td>
+            <td class="row-actions">
+              ${s.pin ? `<button class="btn btn-ghost btn-small" onclick="event.stopPropagation(); handleResetPin('${sid}')">PIN 초기화</button>` : ''}
+              <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteStudent('${sid}')">삭제</button>
+            </td></tr>
+        `).join('') || '<tr><td colspan="5" class="empty-msg">등록된 학생이 없어요.</td></tr>'}
+      </tbody>
+    </table>`;
+  const all = document.getElementById('selAll');
+  if (all){ all.checked = total > 0 && n === total; all.indeterminate = n > 0 && n < total; }
+}
+// 행이나 체크박스를 누르면 선택/해제 (Shift 를 누르고 누르면 범위 선택)
+function rowPick(ev, sid){
+  ev.stopPropagation();
+  const idx = rosterOrder.indexOf(sid);
+  const willSelect = !selectedStudents.has(sid);
+  if (ev.shiftKey && lastPickedIdx != null && lastPickedIdx !== idx){
+    const [a, b] = [Math.min(lastPickedIdx, idx), Math.max(lastPickedIdx, idx)];
+    for (let i = a; i <= b; i++){ if (willSelect) selectedStudents.add(rosterOrder[i]); else selectedStudents.delete(rosterOrder[i]); }
+  } else {
+    if (willSelect) selectedStudents.add(sid); else selectedStudents.delete(sid);
+  }
+  lastPickedIdx = idx;
+  refreshRosterBox();
+}
+function toggleAllStudents(checked){
+  selectedStudents = checked ? new Set(rosterOrder) : new Set();
+  lastPickedIdx = null;
+  refreshRosterBox();
+}
+function clearStudentSelection(){ selectedStudents = new Set(); lastPickedIdx = null; refreshRosterBox(); }
+function deleteSelectedStudents(){
+  const ids = [...selectedStudents];
+  if (!ids.length) return;
+  if (!confirm(`선택한 ${ids.length}명을 명단에서 삭제할까요?\n되돌릴 수 없어요.`)) return;
+  const updates = {};
+  ids.forEach(id => { updates[id] = null; });
+  db.ref('rosters/' + selectedClassId).update(updates).then(() => {
+    selectedStudents = new Set(); lastPickedIdx = null;
+    showToast(`${ids.length}명을 삭제했어요`);
+  });
+}
+function resetSelectedPins(){
+  const roster = rosters[selectedClassId] || {};
+  const ids = [...selectedStudents].filter(id => roster[id] && roster[id].pin);
+  if (!ids.length) return;
+  if (!confirm(`선택한 학생 중 PIN이 있는 ${ids.length}명의 PIN을 초기화할까요?\n다음 로그인 때 새로 설정하게 돼요.`)) return;
+  Promise.all(ids.map(id => resetStudentPin(selectedClassId, id))).then(() => showToast(`${ids.length}명의 PIN을 초기화했어요`));
 }
 
 function addStudent(){
@@ -409,7 +519,7 @@ function addQuestionSet(){
   ref.set({ name, createdAt: Date.now() }).then(() => { input.value=''; showToast('문제 세트를 추가했어요'); selectedSetId = ref.key; });
 }
 
-function selectSet(id){ selectedSetId = id; renderSetList(); renderSetDetail(); }
+function selectSet(id){ selectedSetId = id; renamingSetId = null; renderSetList(); renderSetDetail(); }
 
 function renderSetDetail(){
   const s = questionSets[selectedSetId];
@@ -419,7 +529,18 @@ function renderSetDetail(){
   const list = Object.entries(qs).sort((a,b) => (a[1].order||0)-(b[1].order||0));
 
   el.innerHTML = `
-    <div class="detail-header"><div class="detail-title">${escapeHtml(s.name)}</div></div>
+    ${renamingSetId === selectedSetId ? `
+    <div class="detail-header">
+      <div class="edit-fields" style="flex:1;"><label>세트 이름<input type="text" id="renameSetInput" value="${escapeHtml(s.name)}" onkeydown="if(event.key==='Enter')saveRenameSet(); if(event.key==='Escape')cancelRenameSet()"></label></div>
+      <div style="display:flex; gap:8px; align-self:flex-end;"><button class="btn btn-primary btn-small" onclick="saveRenameSet()">저장</button><button class="btn btn-ghost btn-small" onclick="cancelRenameSet()">취소</button></div>
+    </div>` : `
+    <div class="detail-header">
+      <div><div class="detail-title">${escapeHtml(s.name)}</div><div class="hint">문제 ${list.length}개</div></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-self:flex-start;">
+        <button class="btn btn-ghost btn-small" onclick="startRenameSet()">이름 수정</button>
+        <button class="btn btn-ghost btn-small" onclick="duplicateSet('${selectedSetId}')">세트 복제</button>
+      </div>
+    </div>`}
     <div class="section">
       <div class="section-title">문제 목록 (${list.length}개)</div>
       <table>
@@ -451,6 +572,33 @@ function renderSetDetail(){
     </div>
     <div class="section"><button class="btn btn-danger" onclick="deleteSet('${selectedSetId}')">이 세트 삭제</button></div>
   `;
+}
+
+let renamingSetId = null;
+function startRenameSet(){ renamingSetId = selectedSetId; renderSetDetail(); const el = document.getElementById('renameSetInput'); if (el){ el.focus(); el.select(); } }
+function cancelRenameSet(){ renamingSetId = null; renderSetDetail(); }
+function saveRenameSet(){
+  const name = document.getElementById('renameSetInput').value.trim();
+  if (!name){ showToast('세트 이름을 입력해주세요'); return; }
+  db.ref('questionSets/' + selectedSetId + '/name').set(name).then(() => { renamingSetId = null; showToast('이름을 바꿨어요'); renderSetDetail(); });
+}
+// 문제 세트 복제: 비슷한 문제를 재활용하고 싶을 때 (문제 전체를 새 세트로 복사해요)
+function duplicateSet(setId){
+  const s = questionSets[setId]; if (!s) return;
+  const name = (prompt('복제한 문제 세트의 이름을 정해주세요', s.name + ' (복사본)') || '').trim();
+  if (!name) return;
+  const qs = questionsBySet[setId] || {};
+  const ref = db.ref('questionSets').push();
+  const copy = {};
+  Object.entries(qs).sort((a, b) => (a[1].order || 0) - (b[1].order || 0)).forEach(([qid, q], i) => {
+    const key = db.ref(`questionSets/${ref.key}/questions`).push().key;
+    copy[key] = { text: q.text, order: i };
+  });
+  const n = Object.keys(copy).length;
+  ref.set({ name, createdAt: Date.now(), questions: copy }).then(() => {
+    selectedSetId = ref.key; renamingSetId = null; renderSetList(); renderSetDetail();
+    showToast(`"${name}" 세트를 만들었어요 (문제 ${n}개 복사)`);
+  });
 }
 
 function nextOrder(setId){
@@ -564,7 +712,7 @@ function renderGameList(){
     const sel = id === selectedGameId ? 'selected' : '';
     return `<div class="list-item ${sel}" onclick="selectGame('${id}')">
       <div><div class="name">${escapeHtml(g.className||'')}</div><div class="sub">${escapeHtml(g.questionSetName||'')} · ${g.mode === 'team' ? '모둠 간 · ' : ''}${statusLabel(g.status)}</div></div>
-      ${g.status === 'ended' ? `<button class="btn btn-danger btn-small" onclick="event.stopPropagation(); handleDeleteGame('${id}')">삭제</button>` : ''}
+      <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); handleDeleteGame('${id}')">삭제</button>
     </div>`;
   }).join('');
 }
@@ -572,8 +720,15 @@ function renderGameList(){
 function selectGame(id){ creatingGame = false; selectedGameId = id; renderGameList(); renderGameDetail(); }
 
 async function handleDeleteGame(id){
-  const name = games[id]?.meta?.className || '';
-  if (!confirm(`"${name}"의 종료된 게임 기록을 삭제할까요? 되돌릴 수 없어요.`)) return;
+  const meta = games[id]?.meta || {};
+  const name = meta.className || '';
+  const msg = {
+    lobby: `"${name}" 게임을 삭제할까요?\n(아직 시작하지 않은 게임이에요)`,
+    playing: `"${name}" 게임은 지금 진행 중이에요!\n삭제하면 플레이 중인 화면이 바로 끊기고 기록도 모두 사라져요.\n정말 삭제할까요?`,
+    paused: `"${name}" 게임은 일시정지 중이에요.\n삭제하면 기록이 모두 사라져요. 정말 삭제할까요?`,
+    ended: `"${name}"의 종료된 게임 기록을 삭제할까요? 되돌릴 수 없어요.`
+  }[meta.status] || `"${name}" 게임을 삭제할까요?`;
+  if (!confirm(msg)) return;
   await db.ref('games/' + id).remove();
   if (selectedGameId === id){ selectedGameId = null; document.getElementById('gameDetail').innerHTML = '<div class="empty-msg">왼쪽에서 게임을 선택하거나 새로 만드세요.</div>'; }
   showToast('게임 기록을 삭제했어요');
@@ -626,7 +781,9 @@ function renderCreateForm(){
         <tr id="rowTeamCount" style="display:none"><td>팀(모둠) 수</td><td><input type="number" id="createTeamCount" value="4" min="2" max="8" style="width:100px;"> <span class="hint">2~8팀</span></td></tr>
         <tr id="rowTeamNames" style="display:none"><td>팀 이름</td><td><input type="text" id="createTeamNames" placeholder="쉼표로 구분 (비우면 1모둠, 2모둠, …)" style="width:100%;"></td></tr>
         <tr id="rowChallenge" style="display:none"><td>도전 규칙</td><td><label><input type="checkbox" id="createChallenge" checked> 오답이면 다른 팀이 도전할 수 있어요</label> <span class="hint">도전할 팀은 선생님이 고르고, 도전 팀도 틀리면 또 다른 팀을 고를 수 있어요</span></td></tr>
-        <tr id="rowTurnTimer" style="display:none"><td>턴 타이머</td><td><select id="createTurnTimer"><option value="0">끔</option><option value="60">60초</option><option value="90">90초</option></select> <span class="hint">칠판에 경고만 보여줘요 (자동으로 넘어가지는 않아요)</span></td></tr>
+        <tr id="rowTurnTimer" style="display:none"><td>턴 타이머</td><td><input type="number" id="createTurnTimer" value="0" min="0" max="600" step="5" style="width:90px;"> 초
+          <span class="preset-row"><button type="button" class="preset-btn" onclick="setTimerPreset(0)">끔</button><button type="button" class="preset-btn" onclick="setTimerPreset(30)">30초</button><button type="button" class="preset-btn" onclick="setTimerPreset(45)">45초</button><button type="button" class="preset-btn" onclick="setTimerPreset(60)">60초</button><button type="button" class="preset-btn" onclick="setTimerPreset(90)">90초</button></span>
+          <span class="hint">0이면 꺼져요 · 칠판에 경고만 보여줘요 (자동으로 넘어가지는 않아요)</span></td></tr>
         <tr id="rowMaxPerGroup"><td>모둠별 최대 인원</td><td><input type="number" id="createMaxPerGroup" value="4" style="width:100px;"></td></tr>
         <tr><td>판정 취소 대기(초)</td><td><input type="number" id="createJudgeCancel" value="3" min="0" max="10" style="width:100px;" oninput="this.dataset.touched='1'"> <span class="hint">판정 버튼을 누른 뒤 취소할 수 있는 시간 (모둠 간 경쟁은 기본 0초 — 칠판의 되돌리기로 취소할 수 있어요)</span></td></tr>
         <tr><td>덱 상한(장)</td><td><input type="number" id="createDeckCap" min="0" placeholder="제한 없음" style="width:100px;"> <span class="hint">비워두면 문제를 전부 사용해요</span></td></tr>
@@ -664,6 +821,8 @@ function renderCreateForm(){
   renderCreateFormClassOptions();
   renderCreateFormSetOptions();
 }
+
+function setTimerPreset(sec){ document.getElementById('createTurnTimer').value = sec; }
 
 function onModeChange(){
   const team = document.querySelector('input[name=gameMode]:checked').value === 'team';
@@ -703,7 +862,7 @@ async function submitCreateGame(){
   const teamCount = Math.max(2, Math.min(8, Number(document.getElementById('createTeamCount').value) || 4));
   const teamNames = document.getElementById('createTeamNames').value.split(',').map(s => s.trim()).filter(Boolean);
   const challengeEnabled = document.getElementById('createChallenge').checked;
-  const turnTimerSec = Number(document.getElementById('createTurnTimer').value) || 0;
+  const turnTimerSec = Math.max(0, Math.min(600, Math.round(Number(document.getElementById('createTurnTimer').value) || 0)));
   const groupCount = isTeam ? 1 : (Number(document.getElementById('createGroupCount').value) || 1);
   const maxPerGroup = isTeam ? teamCount : (Number(document.getElementById('createMaxPerGroup').value) || 4);
   const deckMode = isTeam ? 'random' : document.querySelector('input[name=deckMode]:checked').value;

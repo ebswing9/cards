@@ -622,3 +622,46 @@ body.admin .radio-row label{
 }
 body.admin .radio-row label:hover{ border-color:var(--primary-pale); background:var(--primary-tint); }
 body.admin .radio-row label:has(input:checked){ border-color:var(--primary); background:var(--primary-tint); color:var(--primary-dark); box-shadow:0 4px 12px rgba(118,159,205,0.2); }
+
+/* ---- 명단: 선택 체크박스 / 선택 막대 ---- */
+body.admin input.sel-cb{ width:24px; height:24px; border-radius:8px; border:2px solid #A9C4E6; background:#fff; }
+body.admin input.sel-cb::after{
+  content:""; position:absolute; left:7px; top:2px; width:6px; height:12px; border:solid #fff; border-width:0 3px 3px 0;
+  transform:rotate(45deg) scale(0); transition:transform 0.16s cubic-bezier(.3,1.6,.5,1);
+}
+body.admin input.sel-cb:checked{ background:linear-gradient(155deg,#8FB6E4,#4A72A8); border-color:#4A72A8; box-shadow:0 0 0 4px rgba(118,159,205,0.22); }
+body.admin input.sel-cb:checked::after{ transform:rotate(45deg) scale(1); }
+body.admin input.sel-cb:indeterminate{ background:linear-gradient(155deg,#8FB6E4,#4A72A8); border-color:#4A72A8; box-shadow:0 0 0 4px rgba(118,159,205,0.22); }
+body.admin input.sel-cb:indeterminate::after{ left:4px; top:8px; width:12px; height:0; border-width:0 0 3px 0; transform:none; }
+body.admin input.sel-cb:disabled{ opacity:0.4; cursor:default; }
+
+.roster-bar{
+  display:flex; align-items:center; gap:12px; padding:9px 14px; margin-bottom:10px; min-height:52px;
+  background:#fff; border:2px solid var(--line); border-radius:16px; transition:background 0.15s, border-color 0.15s;
+}
+.roster-bar.on{ background:var(--primary-tint); border-color:var(--primary-pale); }
+.roster-bar .grow{ flex:1; }
+.roster-bar .sel-all{ display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:800; font-size:14px; color:var(--primary-dark); user-select:none; }
+.roster-bar .sel-count{ font-family:'Pretendard',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink-soft); }
+.roster-bar .sel-count b{ color:var(--primary-dark); font-weight:800; }
+.roster-table tbody tr{ cursor:pointer; transition:background 0.12s; }
+.roster-table tbody tr:hover td{ background:#F4F9FD; }
+.roster-table tbody tr.sel td{ background:var(--primary-tint); }
+.roster-table .cb-cell{ text-align:center; }
+
+.roster-table td{ vertical-align:middle; }
+.roster-table .row-actions{ white-space:nowrap; text-align:right; }
+
+/* ---- 관리자: 이름/코드 수정, 타이머 빠른 선택 ---- */
+.edit-fields{ display:flex; flex-direction:column; gap:12px; flex:1; max-width:520px; }
+.edit-fields label{ display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:800; color:var(--primary-dark); }
+.edit-fields input{ font-size:16px; }
+.code-edit{ display:flex; gap:8px; align-items:center; }
+.code-edit input{ max-width:170px; letter-spacing:0.15em; font-weight:800; }
+.preset-row{ display:inline-flex; gap:6px; margin:0 8px; vertical-align:middle; }
+.preset-btn{
+  border:2px solid var(--line); background:#fff; color:var(--primary-dark); border-radius:999px; padding:3px 14px; cursor:pointer;
+  font-family:'Pretendard',sans-serif; font-weight:800; font-size:13px; transition:background 0.12s, border-color 0.12s;
+}
+.preset-btn:hover{ background:var(--primary-tint); border-color:var(--primary-pale); }
+.preset-btn:active{ transform:scale(0.95); }

@@ -10,6 +10,22 @@ function serverNow(){ return Date.now() + serverTimeOffset; }
 // 방어 확인창 마감 시각 (모둠 간 경쟁은 선생님이 대상 팀에게 물어보고 누르므로 10분)
 function defenseDeadline(group){ return serverNow() + (group.teamMode ? 10 * 60 * 1000 : DEFENSE_WINDOW_MS); }
 
+// ---------- 관리자 로그인 유지 (한 번 로그인하면 30일 동안 PIN을 다시 묻지 않아요) ----------
+const ADMIN_LOGIN_DAYS = 30;
+function isAdminUnlocked(){
+  if (sessionStorage.getItem('admin_unlocked') === '1') return true;
+  const t = Number(localStorage.getItem('admin_unlocked_at') || 0);
+  return !!t && Date.now() - t < ADMIN_LOGIN_DAYS * 86400000;
+}
+function setAdminUnlocked(){
+  localStorage.setItem('admin_unlocked_at', String(Date.now()));
+  sessionStorage.setItem('admin_unlocked', '1');
+}
+function lockAdmin(){
+  localStorage.removeItem('admin_unlocked_at');
+  sessionStorage.removeItem('admin_unlocked');
+}
+
 function groupRef(gameId, g){ return db.ref(`games/${gameId}/groups/${g}`); }
 function metaRef(gameId){ return db.ref(`games/${gameId}/meta`); }
 function playersRef(gameId){ return db.ref(`games/${gameId}/players`); }
