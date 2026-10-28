@@ -299,6 +299,7 @@ function useSpecialCard(gameId, g, playerId, type){
     if (group.phase !== 'pre_turn') return;
     if (group.currentPlayerId !== playerId) return;
     if (group.turnFlags && group.turnFlags.specialUsed) return;
+    if (group.teamMode && group.finalRound && group.finalRound.active) return; // 마지막 한 바퀴에는 점프·전환을 쓸 수 없어요
     const hand = group.hands && group.hands[playerId];
     if (!hand || !hand[type]) return;
 
@@ -642,13 +643,9 @@ function endGroupIfTimeUp(gameId, g, endAt){
       if (group.finalRound && group.finalRound.active) return; // 마지막 한 바퀴 진행 중
       const order = computeOrder(group.seats, group.excludedIds);
       const taken = group.turnsTaken || {};
-      const max = Math.max(0, ...order.map(id => taken[id] || 0));
-      const n = order.length;
       const dir = group.direction || 1;
-      const start = Math.max(0, order.indexOf(group.currentPlayerId));
-      const seq = [];
-      for (let i = 0; i < n; i++) seq.push(order[(((start + i * dir) % n) + n) % n]);
-      const need = seq.filter(id => (taken[id] || 0) < max); // 턴이 부족한 팀만
+      // 모든 팀의 턴 수가 같아질 때까지, 부족한 팀이 부족한 횟수만큼 차례로 진행해요
+      const need = buildCatchUpQueue(order, taken, group.currentPlayerId, dir);
       if (need.length === 0){
         group.phase = 'ended';
         group.endReason = 'time';

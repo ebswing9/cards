@@ -29,7 +29,9 @@
   /* 팀 카드: 위쪽 띠가 팀 색이에요 */
   .b-teams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; padding-top:26px; }
   .b-team{ position:relative; background:#fff; border:4px solid var(--line); border-radius:26px; padding:0 14px 14px; text-align:center; box-shadow:0 8px 22px rgba(118,159,205,0.18); transition:transform 0.2s; }
-  .b-team-head{ background:var(--tc); color:var(--on); margin:-4px -18px 6px; padding:8px 10px; border-radius:22px 22px 0 0; font-size:clamp(22px,1.9vw,32px); font-weight:900; }
+  .b-turncnt{ position:absolute; right:12px; top:50%; transform:translateY(-50%); font-family:'Pretendard',sans-serif; font-weight:800; font-size:12px; opacity:0.6; }
+  .b-teams.many .b-turncnt{ display:none; }
+  .b-team-head{ position:relative; background:var(--tc); color:var(--on); margin:-4px -18px 6px; padding:8px 10px; border-radius:22px 22px 0 0; font-size:clamp(22px,1.9vw,32px); font-weight:900; }
   .b-score{ font-size:clamp(54px,5vw,84px); font-weight:900; line-height:1.05; color:var(--ink); }
   .b-score small{ font-size:0.32em; margin-left:4px; color:var(--ink-soft); font-family:'Pretendard',sans-serif; font-weight:800; }
   .b-chips{ display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
@@ -486,7 +488,7 @@ function isUsable(id, t){
   if (META().status !== 'playing' || g.currentPlayerId !== id) return false;
   if ((handOf(id)[t] || 0) <= 0) return false;
   const f = g.turnFlags || {};
-  if (t === 'jump' || t === 'turn') return g.phase === 'pre_turn' && !f.specialUsed;
+  if (t === 'jump' || t === 'turn') return g.phase === 'pre_turn' && !f.specialUsed && !(g.finalRound && g.finalRound.active);
   if (t === 'pass') return g.phase === 'awaiting_answer' && !f.passUsed;
   return false;
 }
@@ -619,7 +621,7 @@ function teamsHtml(){
     const c = tColor(id), sc = handScore(handOf(id));
     return `<div class="b-team ${cur ? 'current' : ''} ${pick[id] ? 'pickable' : ''}" style="--tc:${c};--on:${onColor(c)};--td:${deep(c)};--tg:${rgba(deep(c), 0.5)};--tg2:${rgba(deep(c), 0.9)}" ${pick[id] ? `onclick="pickTeam('${id}')"` : ''}>
       ${cur ? '<div class="b-turn-tag">지금 차례</div>' : ''}
-      <div class="b-team-head">${esc(tName(id))}</div>
+      <div class="b-team-head">${esc(tName(id))}<span class="b-turncnt">${(g.turnsTaken || {})[id] || 0}턴</span></div>
       <div class="b-score">${sc}<small>점</small></div>
       <div class="b-chips">${chipsHtml(id)}</div></div>`;
   }).join('')}</div>`;
@@ -646,7 +648,10 @@ function judgeButtons(withUnknown){
 }
 function stageHtml(){
   const m = META(), g = GRP(), cur = g.currentPlayerId;
-  const finalNote = (g.finalRound && g.finalRound.active) ? '<div class="b-sub">마지막 한 바퀴예요! 턴이 부족한 팀만 진행해요</div>' : '';
+  const turnsOf = id => (g.turnsTaken || {})[id] || 0;
+  const finalList = (g.finalRound && g.finalRound.active) ? [cur].concat(g.finalRound.queue || []) : [];
+  const finalNote = finalList.length
+    ? `<div class="b-sub">마지막 한 바퀴예요! 모든 모둠의 턴 수를 같게 맞추는 중이에요<br>남은 차례: ${finalList.map(id => esc(tName(id))).join(' → ')}</div>` : '';
   if (g.phase === 'pre_turn'){
     const jt = isUsable(cur, 'jump') || isUsable(cur, 'turn');
     return `${finalNote}

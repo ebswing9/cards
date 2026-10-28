@@ -209,6 +209,25 @@ function pushSolved(group, playerId, questionText, cardType){
 
 // 한 턴이 끝날 때 공통으로 호출: 대기 중인 건너뛰기/방향전환 효과를 적용하고
 // 다음 플레이어·판정자를 정해요.
+// 모둠 간 경쟁: 턴 수가 부족한 팀이 '부족한 횟수만큼' 차례로 더 하는 대기열을 만들어요.
+// 모든 팀이 같은 턴 수(가장 많이 한 팀의 턴 수)가 되도록 돌아가며 한 번씩 채워 줘요.
+function buildCatchUpQueue(order, taken, startId, dir){
+  const n = order.length;
+  if (!n) return [];
+  const max = Math.max(0, ...order.map(id => taken[id] || 0));
+  const deficit = {};
+  let left = 0;
+  order.forEach(id => { deficit[id] = max - (taken[id] || 0); left += deficit[id]; });
+  const start = Math.max(0, order.indexOf(startId));
+  const seq = [];
+  for (let i = 0; i < n; i++) seq.push(order[(((start + i * dir) % n) + n) % n]);
+  const queue = [];
+  while (left > 0){
+    seq.forEach(id => { if (deficit[id] > 0){ queue.push(id); deficit[id]--; left--; } });
+  }
+  return queue;
+}
+
 function applyEndTurn(group){
   const order = computeOrder(group.seats, group.excludedIds);
   if (order.length === 0){ group.phase = 'ended'; return group; }
@@ -223,13 +242,9 @@ function applyEndTurn(group){
   // 모둠 간 경쟁: 카드가 다 떨어졌는데 아직 턴을 덜 한 팀이 있으면, 예비 카드로 그 팀들만 마저 진행해요
   if (group.teamMode && (!group.deck || group.deck.length === 0) && !(group.finalRound && group.finalRound.active)){
     const taken = group.turnsTaken || {};
-    const max = Math.max(0, ...order.map(id => taken[id] || 0));
-    const n = order.length;
     const dirNext = (group.direction || 1) * (group.pendingFlip ? -1 : 1);
-    const start = Math.max(0, order.indexOf(group.judgeId));
-    const seq = [];
-    for (let i = 0; i < n; i++) seq.push(order[(((start + i * dirNext) % n) + n) % n]);
-    const need = seq.filter(id => (taken[id] || 0) < max);
+    const startId = nextInLine(order, group.currentPlayerId, dirNext);
+    const need = buildCatchUpQueue(order, taken, startId, dirNext);
     if (need.length > 0 && group.reserve && group.reserve.length > 0){
       group.deck = group.reserve;
       group.reserve = null;
@@ -260,10 +275,21 @@ function applyEndTurn(group){
     newJudge = judgeFor(order, newCurrent, direction) || newCurrent;
   } else {
     if (group.pendingFlip) direction = -direction;
-    newCurrent = group.judgeId;
-    if (!newCurrent || order.indexOf(newCurrent) === -1) newCurrent = order[0];
+    // 다음 차례 = (방향이 바뀌었다면 바뀐 방향 기준으로) 지금 차례 다음 팀
+    const cur = group.currentPlayerId;
+    if (cur && order.indexOf(cur) !== -1){
+      newCurrent = nextInLine(order, cur, direction);
+    } else {
+      newCurrent = group.judgeId;
+      if (!newCurrent || order.indexOf(newCurrent) === -1) newCurrent = order[0];
+    }
     if (group.pendingSkip){
+      const skipped = newCurrent;
       newCurrent = nextInLine(order, newCurrent, direction) || newCurrent;
+      if (group.teamMode && skipped && skipped !== newCurrent){ // 건너뛰어진 팀은 이번 차례를 쓴 것으로 세요 (마지막에 보충해 주지 않아요)
+        group.turnsTaken = group.turnsTaken || {};
+        group.turnsTaken[skipped] = (group.turnsTaken[skipped] || 0) + 1;
+      }
     }
     newJudge = judgeFor(order, newCurrent, direction) || newCurrent;
   }
