@@ -651,7 +651,7 @@ function stageHtml(){
   const turnsOf = id => (g.turnsTaken || {})[id] || 0;
   const finalList = (g.finalRound && g.finalRound.active) ? [cur].concat(g.finalRound.queue || []) : [];
   const finalNote = finalList.length
-    ? `<div class="b-sub">마지막 한 바퀴예요! 모든 모둠의 턴 수를 같게 맞추는 중이에요<br>남은 차례: ${finalList.map(id => esc(tName(id))).join(' → ')}</div>` : '';
+    ? `<div class="b-sub">시간이 끝났어요! 이번 순서의 끝까지만 하고 마쳐요<br>남은 차례: ${finalList.map(id => esc(tName(id))).join(' → ')}</div>` : '';
   if (g.phase === 'pre_turn'){
     const jt = isUsable(cur, 'jump') || isUsable(cur, 'turn');
     return `${finalNote}

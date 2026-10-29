@@ -642,26 +642,22 @@ function endGroupIfTimeUp(gameId, g, endAt){
     if (group.teamMode){
       if (group.finalRound && group.finalRound.active) return; // 마지막 한 바퀴 진행 중
       const order = computeOrder(group.seats, group.excludedIds);
-      const taken = group.turnsTaken || {};
       const dir = group.direction || 1;
-      // 모든 팀의 턴 수가 같아질 때까지, 부족한 팀이 부족한 횟수만큼 차례로 진행해요
-      const need = buildCatchUpQueue(order, taken, group.currentPlayerId, dir);
-      if (need.length === 0){
+      // 진행 중이던 팀 다음부터, 진행 방향의 '이번 순서의 끝'(정방향은 마지막 번호, 역방향은 1번)까지만 더 해요.
+      // 방금 순서의 끝 팀까지 마쳐서 한 바퀴가 이미 끝났다면 바로 종료해요.
+      const curIdx = order.indexOf(group.currentPlayerId);
+      const done = curIdx === -1 || lapJustCompleted(order, group.lastPlayerId, group.currentPlayerId, dir);
+      const queue = done ? [] : [group.currentPlayerId].concat(lapEndQueue(order, group.currentPlayerId, dir));
+      if (queue.length === 0){
         group.phase = 'ended';
         group.endReason = 'time';
         pushLog(group, '시간이 끝나 게임을 종료해요');
         return group;
       }
-      if (need[0] !== group.currentPlayerId){
-        group.currentPlayerId = need[0];
-        group.judgeId = judgeFor(order, need[0], dir) || need[0];
-        group.turnFlags = { specialUsed: false, passUsed: false };
-        group.turnStartedAt = serverNow();
-      }
       group.pendingSkip = false; group.pendingFlip = false;
-      group.finalRound = { active: true, queue: need.slice(1) };
+      group.finalRound = { active: true, queue: queue.slice(1) };
       group.finalReason = 'time';
-      pushLog(group, '시간이 끝났어요! 마지막 한 바퀴를 진행해요');
+      pushLog(group, '시간이 끝났어요! 이번 순서의 끝까지만 진행해요');
       return group;
     }
     group.phase = 'ended';

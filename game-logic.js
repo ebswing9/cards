@@ -209,23 +209,30 @@ function pushSolved(group, playerId, questionText, cardType){
 
 // 한 턴이 끝날 때 공통으로 호출: 대기 중인 건너뛰기/방향전환 효과를 적용하고
 // 다음 플레이어·판정자를 정해요.
-// 모둠 간 경쟁: 턴 수가 부족한 팀이 '부족한 횟수만큼' 차례로 더 하는 대기열을 만들어요.
-// 모든 팀이 같은 턴 수(가장 많이 한 팀의 턴 수)가 되도록 돌아가며 한 번씩 채워 줘요.
-function buildCatchUpQueue(order, taken, startId, dir){
+// 모둠 간 경쟁 '마지막 한 바퀴': 시간이 끝나면 진행 방향으로 '이번 순서의 끝'까지만 더 하고 끝내요.
+//  - 정방향(1→2→3→4→5)이면 마지막 번호 팀까지, 역방향(5→4→3→2→1)이면 1번 팀까지예요.
+//  - 예) 12345 순서에서 3모둠 차례에 시간이 끝나면 4, 5모둠까지 하고 끝!
+// afterId 다음 팀부터 끝 팀까지의 순서를 돌려줘요.
+function lapEndQueue(order, afterId, dir){
   const n = order.length;
   if (!n) return [];
-  const max = Math.max(0, ...order.map(id => taken[id] || 0));
-  const deficit = {};
-  let left = 0;
-  order.forEach(id => { deficit[id] = max - (taken[id] || 0); left += deficit[id]; });
-  const start = Math.max(0, order.indexOf(startId));
-  const seq = [];
-  for (let i = 0; i < n; i++) seq.push(order[(((start + i * dir) % n) + n) % n]);
-  const queue = [];
-  while (left > 0){
-    seq.forEach(id => { if (deficit[id] > 0){ queue.push(id); deficit[id]--; left--; } });
+  const endIdx = dir === 1 ? n - 1 : 0;
+  let idx = order.indexOf(afterId);
+  if (idx === -1) idx = dir === 1 ? -1 : n;
+  const q = [];
+  for (;;){
+    idx += dir;
+    if (idx < 0 || idx >= n) break;
+    q.push(order[idx]);
+    if (idx === endIdx) break;
   }
-  return queue;
+  return q;
+}
+// 방금 턴을 마친 팀(lastId)에서 다음 팀(curId)으로 넘어오면서 순서의 끝을 지나 한 바퀴가 이미 끝났는지
+function lapJustCompleted(order, lastId, curId, dir){
+  const iLast = order.indexOf(lastId), iCur = order.indexOf(curId);
+  if (iLast === -1 || iCur === -1) return false;
+  return dir === 1 ? iCur <= iLast : iCur >= iLast;
 }
 
 function applyEndTurn(group){
@@ -237,14 +244,14 @@ function applyEndTurn(group){
   if (group.teamMode && group.currentPlayerId){
     group.turnsTaken = group.turnsTaken || {};
     group.turnsTaken[group.currentPlayerId] = (group.turnsTaken[group.currentPlayerId] || 0) + 1;
+    group.lastPlayerId = group.currentPlayerId;
   }
 
-  // 모둠 간 경쟁: 카드가 다 떨어졌는데 아직 턴을 덜 한 팀이 있으면, 예비 카드로 그 팀들만 마저 진행해요
+  // 모둠 간 경쟁: 카드가 다 떨어졌는데 이번 순서가 아직 안 끝났으면, 예비 카드로 순서의 끝까지만 마저 진행해요
   if (group.teamMode && (!group.deck || group.deck.length === 0) && !(group.finalRound && group.finalRound.active)){
-    const taken = group.turnsTaken || {};
     const dirNext = (group.direction || 1) * (group.pendingFlip ? -1 : 1);
-    const startId = nextInLine(order, group.currentPlayerId, dirNext);
-    const need = buildCatchUpQueue(order, taken, startId, dirNext);
+    let need = lapEndQueue(order, group.currentPlayerId, dirNext);
+    if (group.pendingSkip && need.length) need = need.slice(1); // 점프로 건너뛰어질 팀은 빼요
     if (need.length > 0 && group.reserve && group.reserve.length > 0){
       group.deck = group.reserve;
       group.reserve = null;
